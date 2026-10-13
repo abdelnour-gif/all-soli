@@ -31,10 +31,13 @@ final class Client
 {
     public array $cookies = [];
     public string $base;
+    /** Like a real phone: one random device id per client (sent by assets/js/public.js). */
+    public string $device;
 
     public function __construct(string $base)
     {
         $this->base = $base;
+        $this->device = bin2hex(random_bytes(12));
     }
 
     /** @return array{status:int, headers:array, body:string, json:?array} */
@@ -86,7 +89,7 @@ final class Client
     public function api(string $method, string $path, ?array $body = null, ?string $csrf = null, array $extra = []): array
     {
         $hasOrigin = (bool) preg_grep('/^Origin:/i', $extra);
-        $h = array_merge($hasOrigin ? [] : ['Origin: ' . preg_replace('#^(https?://[^/]+).*$#', '$1', $this->base)], ['Accept: application/json'], $extra);
+        $h = array_merge($hasOrigin ? [] : ['Origin: ' . preg_replace('#^(https?://[^/]+).*$#', '$1', $this->base)], ['Accept: application/json', 'X-QP-Device: ' . $this->device], $extra);
         if ($csrf) {
             $h[] = 'X-CSRF-Token: ' . $csrf;
         }

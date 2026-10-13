@@ -56,10 +56,18 @@ window.QP = (function () {
   function ticket(token) { return poll('t=' + encodeURIComponent(token), 'tickets/' + token); }
   function live(slug) { return poll('p=' + encodeURIComponent(slug), 'providers/' + slug + '/live'); }
 
+  // Random id of this phone/browser (no personal data, never leaves this site). Lets the server limit
+  // bookings per device, so customers sharing one Wi-Fi network are not limited together.
+  function device() {
+    var d = ls('get', 'qp_device');
+    if (!d || !/^[A-Za-z0-9-]{16,64}$/.test(d)) { d = uuid(); ls('set', 'qp_device', d); }
+    return d;
+  }
+
   function post(path, body, headers) {
     return fetch(C.rest + path + '?lang=' + (C.lang || 'ar'), {
       method: 'POST', credentials: 'same-origin',
-      headers: Object.assign({ 'Content-Type': 'application/json', 'Accept': 'application/json' }, headers || {}),
+      headers: Object.assign({ 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-QP-Device': device() }, headers || {}),
       body: JSON.stringify(body || {})
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {

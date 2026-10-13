@@ -16,8 +16,10 @@ final class Settings
         // Credit policy: what consumes a credit. Only "complete" by default.
         'consume_on_no_show'       => 0,
         'consume_on_cancel'        => 0,
-        // Anti-abuse for account-less booking.
-        'max_joins_per_ip_window'  => 4,
+        // Anti-abuse for account-less booking (see QueueService::join).
+        'max_joins_per_ip_window'  => 6,   // bookings from one network before an SMS code is asked (when SMS works)
+        'max_joins_per_ip_hard'    => 30,  // absolute cap per network per window
+        'max_joins_per_device_window' => 3, // bookings from one phone / browser per window
         'ip_window_minutes'        => 15,
         'max_joins_per_phone_day'  => 6,
         'poll_interval_seconds'    => 7,

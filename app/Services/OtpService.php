@@ -54,7 +54,7 @@ final class OtpService
         }
         $this->limiter->hit('otp-phone:' . $phone, 5, 3600);
         if ($ipHash) {
-            $this->limiter->hit('otp-ip:' . $ipHash, 15, 3600);
+            $this->limiter->hit('otp-ip:' . $ipHash, 40, 3600); // shared networks (shop Wi-Fi) send many real customers
         }
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);

@@ -221,12 +221,56 @@ $r1 = $c->queue->join($p1id, ['phone' => '0661000111'], Actor::customer(), $key)
 $r2 = $c->queue->join($p1id, ['phone' => '0661000111'], Actor::customer(), $key);
 ok($r1['ticket']['ref'] === $r2['ticket']['ref'] && $r1['token'] === $r2['token'] && !empty($r2['replayed']), 'same Idempotency-Key → same ticket & link, nothing double-booked');
 
-section('Rate limiting (account-less abuse)');
-$ip = Actor::customer(Security::hashIp('203.0.113.9'));
-for ($i = 0; $i < 4; $i++) {
-    $c->queue->join($p1id, ['phone' => '079900000' . $i], $ip);
+section('Rate limiting: customers sharing one Wi-Fi network (account-less abuse)');
+$cafe = $c->providers->create(['slug' => 'wifi-cafe', 'name_ar' => 'مقهى الشبكة'], $admin);
+$cafeId = (int) $cafe['id'];
+$c->credits->addCredits($cafeId, 'purchased', 200, $admin, ['reason' => 'test']);
+$c->queue->setQueueOpen($cafeId, true, $admin);
+$wifi = Actor::customer(Security::hashIp('203.0.113.9'));     // one public IP for everybody in the shop
+$dev = fn(int $n) => sprintf('phone-%04d-aaaaaaaaaaaa', $n);  // each customer's own phone
+for ($i = 0; $i < 5; $i++) { // typos first: refused attempts must not use anybody's place
+    try { $c->queue->join($cafeId, ['phone' => '12345', 'device' => $dev(90)], $wifi); } catch (QueueException $e) {}
 }
-expectError('rate_limited', fn() => $c->queue->join($p1id, ['phone' => '0799000009'], $ip), '5th booking from same IP within 15 min');
+$okJoins = 0;
+for ($i = 0; $i < 6; $i++) {
+    $c->queue->join($cafeId, ['phone' => '07990000' . sprintf('%02d', $i), 'device' => $dev($i)], $wifi);
+    $okJoins++;
+}
+ok($okJoins === 6, '6 customers on the same Wi-Fi book without any extra step (5 mistyped numbers before did not count)');
+expectError('otp_required', fn() => $c->queue->join($cafeId, ['phone' => '0799000006', 'device' => $dev(6)], $wifi),
+    '7th customer on the same Wi-Fi is NOT refused: asked to confirm the phone by SMS');
+$c->queue->requestOtp($cafeId, '0799000006', 'join', 'ar', $wifi);
+$code = $db->getVar("SELECT body FROM {$db->table('notifications')} WHERE type='otp' AND to_phone='+213799000006' ORDER BY id DESC LIMIT 1");
+preg_match('/\d{6}/', (string) $code, $m);
+$t7 = $c->queue->join($cafeId, ['phone' => '0799000006', 'device' => $dev(6), 'otp_code' => $m[0] ?? ''], $wifi);
+ok($t7['ticket']['status'] === 'waiting', '…with the SMS code the 7th real customer gets a ticket');
+expectError('otp_required', fn() => $c->queue->join($cafeId, ['phone' => '0799000077', 'device' => $dev(7)], $wifi),
+    'a script inventing phone numbers cannot get past the SMS step');
+
+$c->settings->set('max_joins_per_ip_window', 100, $admin, $c->audit); // isolate the next checks from the SMS step
+$home = Actor::customer(Security::hashIp('198.51.100.20'));
+$four = Actor::customer(Security::hashIp('198.51.100.21'));
+for ($i = 0; $i < 3; $i++) {
+    $c->queue->join($cafeId, ['phone' => '06610000' . $i . '1', 'device' => 'one-phone-books-for-everyone'], $home);
+}
+expectError('rate_limited', fn() => $c->queue->join($cafeId, ['phone' => '0661000091', 'device' => 'one-phone-books-for-everyone'], $four),
+    'one phone cannot book a 4th number in 15 min (even after switching network)');
+$bot = Actor::customer(Security::hashIp('198.51.100.30'));
+for ($i = 0; $i < 3; $i++) {
+    $c->queue->join($cafeId, ['phone' => '05510000' . $i . '2'], $bot);
+}
+expectError('rate_limited', fn() => $c->queue->join($cafeId, ['phone' => '0551000092'], $bot),
+    'requests without a device id (scripts) share one strict limit per network');
+$c->settings->set('max_joins_per_ip_hard', 8, $admin, $c->audit);
+$office = Actor::customer(Security::hashIp('198.51.100.40'));
+for ($i = 0; $i < 8; $i++) {
+    $c->queue->join($cafeId, ['phone' => '07710000' . $i . '3', 'device' => $dev(200 + $i)], $office);
+}
+expectError('rate_limited', fn() => $c->queue->join($cafeId, ['phone' => '0771000093', 'device' => $dev(300)], $office),
+    'hard ceiling per network still stops a flood (rotating device ids)');
+$c->settings->set('max_joins_per_ip_hard', 30, $admin, $c->audit);
+$c->settings->set('max_joins_per_ip_window', 6, $admin, $c->audit);
+checkBooks($c, $cafeId, 'wifi-cafe');
 
 section('Zero credit: stop, keep serving, resume');
 $p2 = $c->providers->create(['slug' => 'pharmacie-salam', 'name_ar' => 'صيدلية السلام', 'user_id' => 12], $admin);
@@ -426,7 +470,7 @@ ok(strpos((string) $audit, 'sk_live') === false, 'secret values never written to
 
 section('Admin stats');
 $s = $c->stats->overview();
-ok($s['providers']['total'] === 4 && $s['credits']['purchased'] === 200, "stats: {$s['providers']['total']} providers, {$s['credits']['purchased']} credits sold, {$s['credits']['consumed']} consumed");
+ok($s['providers']['total'] === 5 && $s['credits']['purchased'] === 400, "stats: {$s['providers']['total']} providers, {$s['credits']['purchased']} credits sold, {$s['credits']['consumed']} consumed");
 
 echo "\n" . ($fail === 0 ? "\033[42;30m PASS \033[0m" : "\033[41;37m FAIL \033[0m") . " $pass passed, $fail failed\n";
 exit($fail === 0 ? 0 : 1);

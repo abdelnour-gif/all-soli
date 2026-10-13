@@ -327,6 +327,7 @@ final class ApiController
             'service_id' => (int) $r->param('service_id'),
             'otp_code'   => $r->param('otp_code') !== null ? (string) $r->param('otp_code') : null,
             'lang'       => $this->lang(),
+            'device'     => $r->header('x-qp-device'),
         ], Actor::customer($this->ipHash()), $r->header('idempotency-key') ?: null);
         $this->flushLive((int) $p['id']);
         $result['ticket_url'] = url('/t/' . $result['token'] . '/');

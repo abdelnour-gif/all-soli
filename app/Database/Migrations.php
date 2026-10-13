@@ -11,6 +11,12 @@ defined('QP_APP') || exit;
 final class Migrations
 {
     private const LIST = [
+        // 2.1: the per-network limit no longer refuses (it asks for an SMS code instead); raise the old
+        // default 4 → 6, but keep any value the Super Admin chose.
+        '20261013_shared_network_limits' => [
+            'sqlite' => ["UPDATE qp_settings SET setting_value = '6' WHERE setting_key = 'max_joins_per_ip_window' AND setting_value = '4'"],
+            'mysql'  => ["UPDATE qp_settings SET setting_value = '6' WHERE setting_key = 'max_joins_per_ip_window' AND setting_value = '4'"],
+        ],
         // Example for a future release:
         // '20270101_providers_whatsapp' => [
         //     'sqlite' => ["ALTER TABLE qp_providers ADD COLUMN whatsapp TEXT NULL"],

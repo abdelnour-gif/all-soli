@@ -30,7 +30,7 @@
     target: 'الهدف', user: 'المستخدم', details: 'التفاصيل', settings: 'الإعدادات',
     g_credit: 'سياسة الرصيد', g_abuse: 'الحماية من الإساءة', g_notify: 'التحقق والإشعارات', g_sms: 'بوابة الرسائل (SMS / واتساب)', g_brand: 'المنصة',
     s_free_grant_credits: 'الحجوزات المجانية لكل مزوّد جديد', s_low_credit_threshold: 'تنبيه الرصيد المنخفض عند', s_consume_on_no_show: 'خصم حجز عند الغياب (No-show)',
-    s_consume_on_cancel: 'خصم حجز عند إلغاء المزوّد', s_max_joins_per_ip_window: 'أقصى حجوزات من نفس الجهاز', s_ip_window_minutes: 'خلال (دقيقة)',
+    s_consume_on_cancel: 'خصم حجز عند إلغاء المزوّد', s_max_joins_per_ip_window: 'حجوزات من نفس الشبكة (Wi-Fi) قبل طلب رمز SMS', s_max_joins_per_ip_hard: 'الحد الأقصى من نفس الشبكة', s_max_joins_per_device_window: 'أقصى حجوزات من نفس الهاتف', s_ip_window_minutes: 'خلال (دقيقة)',
     s_max_joins_per_phone_day: 'أقصى حجوزات لنفس الهاتف يومياً', s_poll_interval_seconds: 'تحديث صفحة العميل كل (ثانية، 5–10)', s_require_otp: 'إلزام العميل برمز تحقق SMS عند الحجز',
     s_notify_on_join: 'إرسال رابط التذكرة بالـ SMS بعد الحجز', s_notify_on_call: 'رسالة "حان دورك" عند الاستدعاء', s_notify_near_ahead: 'رسالة "اقترب دورك" عندما يبقى أمامه (0 = إيقاف)',
     s_otp_ttl_minutes: 'صلاحية رمز التحقق (دقيقة)', s_rating_window_days: 'مدة السماح بالتقييم (يوم)', s_take_homepage: 'استخدام الصفحة الرئيسية للمنصة بدل القالب',
@@ -77,7 +77,7 @@
     target: 'Target', user: 'User', details: 'Details', settings: 'Settings',
     g_credit: 'Credit policy', g_abuse: 'Abuse protection', g_notify: 'Verification & notifications', g_sms: 'Messaging gateway (SMS / WhatsApp)', g_brand: 'Platform',
     s_free_grant_credits: 'Free bookings for each new provider', s_low_credit_threshold: 'Low-credit alert at', s_consume_on_no_show: 'Charge a credit on no-show',
-    s_consume_on_cancel: 'Charge a credit when the provider cancels', s_max_joins_per_ip_window: 'Max bookings per device', s_ip_window_minutes: 'within (minutes)',
+    s_consume_on_cancel: 'Charge a credit when the provider cancels', s_max_joins_per_ip_window: 'Bookings from one network (Wi-Fi) before an SMS code is asked', s_max_joins_per_ip_hard: 'Hard limit per network', s_max_joins_per_device_window: 'Max bookings per phone / browser', s_ip_window_minutes: 'within (minutes)',
     s_max_joins_per_phone_day: 'Max bookings per phone per day', s_poll_interval_seconds: 'Customer page refresh (seconds, 5–10)', s_require_otp: 'Require an SMS code to book',
     s_notify_on_join: 'Text the ticket link after booking', s_notify_on_call: '"Your turn" message on call', s_notify_near_ahead: '"Almost your turn" when this many are left (0 = off)',
     s_otp_ttl_minutes: 'Code validity (minutes)', s_rating_window_days: 'Rating window (days)', s_take_homepage: 'Use the platform home instead of the theme',
@@ -444,7 +444,7 @@
   const BOOL = ['consume_on_no_show', 'consume_on_cancel', 'require_otp', 'notify_on_join', 'notify_on_call', 'take_homepage'];
   const GROUPS = [
     ['g_credit', ['free_grant_credits', 'low_credit_threshold', 'consume_on_no_show', 'consume_on_cancel']],
-    ['g_abuse', ['max_joins_per_ip_window', 'ip_window_minutes', 'max_joins_per_phone_day', 'poll_interval_seconds']],
+    ['g_abuse', ['max_joins_per_device_window', 'max_joins_per_ip_window', 'max_joins_per_ip_hard', 'ip_window_minutes', 'max_joins_per_phone_day', 'poll_interval_seconds']],
     ['g_notify', ['require_otp', 'otp_ttl_minutes', 'notify_on_join', 'notify_on_call', 'notify_near_ahead', 'rating_window_days']],
     ['g_sms', ['sms_driver', 'sms_channel', 'sms_sender', 'sms_http_url', 'sms_http_method', 'sms_http_body', 'sms_http_headers', 'sms_http_secret', 'twilio_sid', 'twilio_from', 'twilio_secret']],
     ['g_brand', ['brand_name', 'support_phone']]

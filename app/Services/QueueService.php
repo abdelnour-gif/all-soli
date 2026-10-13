@@ -59,7 +59,7 @@ final class QueueService
      * Customer joins the queue (no account). Returns the ticket view + the secret
      * link token (shown once; only its hash is stored).
      *
-     * @param array{phone:string,name?:string,service_id?:int,otp_code?:string,lang?:string} $input
+     * @param array{phone:string,name?:string,service_id?:int,otp_code?:string,lang?:string,device?:string} $input
      */
     public function join(int $providerId, array $input, Actor $actor, ?string $idempotencyKey = null): array
     {
@@ -87,18 +87,38 @@ final class QueueService
             }
         }
 
-        // Anti-abuse (outside the transaction so failed attempts still count).
-        if ($actor->ipHash) {
-            $this->limiter->hit('ip:' . $actor->ipHash, $this->settings->int('max_joins_per_ip_window'), $this->settings->int('ip_window_minutes') * 60);
+        // Anti-abuse for account-less booking (checked outside the transaction so refused attempts still count).
+        // Many real customers share one public IP (shop Wi-Fi, mobile carrier NAT), so the network is never
+        // refused after a handful of bookings. Instead:
+        //  - device: one phone/browser books at most N tickets per window (no matter the network);
+        //  - network soft limit: past it, the next bookings must confirm the phone with an SMS code
+        //    (a real customer receives it, a script with invented numbers cannot);
+        //  - network hard ceiling: absolute cap per window, also when SMS is not configured;
+        //  - only SUCCESSFUL bookings use the quotas (a mistyped number costs nobody a place);
+        //  - raw attempts are capped separately against request floods.
+        $window = max(1, $this->settings->int('ip_window_minutes')) * 60;
+        $ipBucket = $actor->ipHash ? 'ip:' . $actor->ipHash : null;
+        $device = (string) ($input['device'] ?? '');
+        $devBucket = preg_match('/^[A-Za-z0-9-]{16,64}$/', $device)
+            ? 'dev:' . $device
+            : ($actor->ipHash ? 'dev-none:' . $actor->ipHash : null); // no device id (scripts): one shared bucket per network
+        if ($ipBucket) {
+            $hard = $this->settings->int('max_joins_per_ip_hard');
+            $this->limiter->hit('join-try:' . $actor->ipHash, max(60, 2 * $hard), $window);
+            $this->limiter->guard($ipBucket, $hard, $window);
+        }
+        if ($devBucket) {
+            $this->limiter->guard($devBucket, $this->settings->int('max_joins_per_device_window'), $window);
         }
         $this->limiter->hit('phone:' . $phone, $this->settings->int('max_joins_per_phone_day'), 86400);
 
-        if ($this->otpRequired()) {
+        if ($this->otpRequired() || ($ipBucket && $this->otp->available()
+                && $this->limiter->peek($ipBucket, $window) >= $this->settings->int('max_joins_per_ip_window'))) {
             $this->otp->verify($phone, 'join', $input['otp_code'] ?? null);
         }
 
         try {
-            return $this->db->transaction(function () use ($providerId, $phone, $name, $serviceId, $actor, $idemHash, $idempotencyKey, $lang) {
+            $result = $this->db->transaction(function () use ($providerId, $phone, $name, $serviceId, $actor, $idemHash, $idempotencyKey, $lang) {
                 if ($idemHash) {
                     $this->db->insert($this->db->table('idempotency_keys'), [
                         'key_hash' => $idemHash, 'scope' => 'join', 'response' => null, 'created_at' => $this->clock->utcString(),
@@ -138,6 +158,12 @@ final class QueueService
                 }
                 return ['token' => $token, 'ticket' => $this->publicView($ticket, $provider)];
             });
+            foreach ([$ipBucket, $devBucket] as $bucket) {
+                if ($bucket) {
+                    $this->limiter->add($bucket, $window);
+                }
+            }
+            return $result;
         } catch (DbException $e) {
             if ($e->isDuplicate() && $idemHash
                 && $this->db->getVar("SELECT key_hash FROM {$this->db->table('idempotency_keys')} WHERE key_hash = %s", [$idemHash])) {

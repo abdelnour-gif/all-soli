@@ -26,6 +26,20 @@ final class RateLimiter
         if ($max <= 0) {
             return;
         }
+        if ($this->increment($bucket, $windowSeconds) > $max) {
+            throw new QueueException('rate_limited', 429);
+        }
+    }
+
+    /** Counts one event without enforcing a limit (e.g. a booking that succeeded). */
+    public function add(string $bucket, int $windowSeconds): void
+    {
+        $this->increment($bucket, $windowSeconds);
+    }
+
+    /** @return int hits in the current window, including this one */
+    private function increment(string $bucket, int $windowSeconds): int
+    {
         $key = Security::hashKey($bucket);
         $now = $this->clock->utcString();
         $table = $this->db->table('rate_limits');
@@ -33,7 +47,7 @@ final class RateLimiter
         // Increment and read back inside one transaction, so each request sees its own
         // count (not a later one) when many arrive at the same instant.
         $cut = $this->clock->nowUtc()->modify('-' . $windowSeconds . ' seconds')->format('Y-m-d H:i:s');
-        $hits = $this->db->transaction(function () use ($table, $key, $now, $cut) {
+        return $this->db->transaction(function () use ($table, $key, $now, $cut) {
             $this->db->query(
                 "INSERT INTO $table (bucket, hits, window_start) VALUES (%s, 1, %s)"
                 . $this->db->onConflict(['bucket'], "hits = CASE WHEN window_start < %s THEN 1 ELSE hits + 1 END,
@@ -42,9 +56,6 @@ final class RateLimiter
             );
             return (int) $this->db->getVar("SELECT hits FROM $table WHERE bucket = %s", [$key]);
         });
-        if ($hits > $max) {
-            throw new QueueException('rate_limited', 429);
-        }
     }
 
     /** Current hits in the active window (without counting a new one). */

@@ -231,7 +231,10 @@ qp_header($name . ' — ' . qp_brand(), ['body_class' => 'qp-provider-page']);
   // ---- booking (with optional SMS code step)
   var idem = QP.uuid(), step = 'form', timer = null;
   var form = $('qp-book-form'), err = $('qp-error'), btn = $('qp-submit');
-  function label() { btn.textContent = C.otp ? (step === 'form' ? T.send_code : T.confirm) : T.book; }
+  // needCode: SMS code required for every booking (setting), or asked by the server for this booking
+  // (many bookings from the same network, e.g. shop Wi-Fi).
+  var needCode = !!C.otp;
+  function label() { btn.textContent = needCode ? (step === 'form' ? T.send_code : T.confirm) : T.book; }
   function showErr(m) { err.textContent = m; err.hidden = !m; }
   function setStep(s) { step = s; $('qp-step-form').hidden = s !== 'form'; $('qp-step-code').hidden = s !== 'code'; label(); showErr(''); if (s === 'code') setTimeout(function () { $('qp-code').focus(); }, 50); }
   function countdown(sec) {
@@ -253,15 +256,18 @@ qp_header($name . ' — ' . qp_brand(), ['body_class' => 'qp-provider-page']);
     ev.preventDefault();
     showErr(''); btn.disabled = true;
     var p;
-    if (C.otp && step === 'form') {
+    if (needCode && step === 'form') {
       p = sendCode();
     } else {
       p = QP.post('providers/' + C.slug + '/join', {
         phone: form.phone.value, name: form.name.value, service_id: serviceId, website: form.website.value,
-        otp_code: C.otp ? form.otp_code.value : undefined
+        otp_code: needCode ? form.otp_code.value : undefined
       }, { 'Idempotency-Key': idem }).then(function (d) {
         QP.addTicket({ t: d.token, s: C.slug, c: d.ticket.code });
         location.href = d.ticket_url;
+      }).catch(function (e) {
+        if (e.code === 'otp_required' && !needCode) { needCode = true; return sendCode(); } // server asks to confirm the phone
+        throw e;
       });
     }
     p.catch(function (e) { showErr(e.message); }).then(function () { btn.disabled = false; });

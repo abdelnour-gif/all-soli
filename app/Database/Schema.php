@@ -13,7 +13,7 @@ defined('QP_APP') || exit;
  */
 final class Schema
 {
-    public const VERSION = '2.0.0';
+    public const VERSION = '2.1.0';
 
     public static function install(Connection $db): void
     {
