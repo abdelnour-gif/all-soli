@@ -117,7 +117,7 @@ function qp_header(string $title, array $o = []): void
 {
     $lang = qp_lang();
     $dir = $lang === 'ar' ? 'rtl' : 'ltr';
-    $self = remove_query_arg('lang');
+    $self = qp_remove_query_arg('lang');
     $nav = $o['nav'] ?? '';
     $links = [
         'home' => url('/'),
@@ -149,8 +149,8 @@ function qp_header(string $title, array $o = []): void
     </nav>
     <div class="qp-topbar-end">
       <div class="qp-lang" aria-label="Language">
-        <a href="<?php echo esc_url(add_query_arg('lang', 'ar', $self)); ?>" class="<?php echo $lang === 'ar' ? 'is-active' : ''; ?>">AR</a>
-        <a href="<?php echo esc_url(add_query_arg('lang', 'en', $self)); ?>" class="<?php echo $lang === 'en' ? 'is-active' : ''; ?>">EN</a>
+        <a href="<?php echo esc_url(qp_add_query_arg('lang', 'ar', $self)); ?>" class="<?php echo $lang === 'ar' ? 'is-active' : ''; ?>">AR</a>
+        <a href="<?php echo esc_url(qp_add_query_arg('lang', 'en', $self)); ?>" class="<?php echo $lang === 'en' ? 'is-active' : ''; ?>">EN</a>
       </div>
       <button class="qp-menu-btn" type="button" aria-controls="qp-nav" aria-expanded="false" data-toggle-nav="qp-nav"><?php echo qp_icon('menu'); ?></button>
     </div>

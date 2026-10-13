@@ -4,7 +4,13 @@
  */
 define('QP_APP', true);
 define('QP_ROOT', __DIR__);
-define('QP_VERSION', '2.0.0');
+define('QP_VERSION', '2.1.0');
+
+// Uploaded as a WordPress plugin: WordPress runs queuepro.php; this standalone entry point stays closed.
+if (strpos(str_replace('\\', '/', __DIR__), '/wp-content/plugins/') !== false) {
+    http_response_code(404);
+    exit;
+}
 
 if (version_compare(PHP_VERSION, '8.0.0', '<')) {
     http_response_code(500);

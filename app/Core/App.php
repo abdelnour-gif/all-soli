@@ -23,7 +23,7 @@ final class App
 
     public static function configPath(): string
     {
-        return QP_ROOT . '/storage/config.php';
+        return QP_STORAGE . '/config.php';
     }
 
     public static function installed(): bool
@@ -75,7 +75,7 @@ final class App
         self::$config = $config;
         date_default_timezone_set('UTC');
         Security::setSecret((string) $config['secret']);
-        Cache::init(QP_ROOT . '/storage/cache');
+        Cache::init(QP_STORAGE . '/cache');
         self::$c = new Container(new Connection($config['db']));
         if (!empty($config['url'])) {
             self::$baseUrl = rtrim((string) $config['url'], '/');
@@ -83,7 +83,7 @@ final class App
         self::$c->notify->baseUrl = self::$baseUrl;
         // Upgrade the schema automatically after the files of a new version were uploaded.
         if (self::schemaVersion() !== Schema::VERSION) {
-            $lock = fopen(QP_ROOT . '/storage/upgrade.lock', 'c');
+            $lock = fopen(QP_STORAGE . '/upgrade.lock', 'c');
             if ($lock) {
                 flock($lock, LOCK_EX);
             }
@@ -116,14 +116,22 @@ final class App
         }
     }
 
-    public static function run(): void
+    /**
+     * Handles one web request.
+     * Standalone (index.php): reads storage/config.php and detects the base path itself.
+     * WordPress (queuepro.php): passes the configuration and the site's base path, and
+     * keeps WordPress' own error settings.
+     */
+    public static function run(?array $embeddedConfig = null, ?string $basePath = null): void
     {
-        self::setupErrors(false);
-        self::$basePath = self::detectBasePath();
+        if ($embeddedConfig === null) {
+            self::setupErrors(false);
+        }
+        self::$basePath = $basePath ?? self::detectBasePath();
         self::$req = Request::capture(self::$basePath);
         self::$nonce = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
 
-        $cfg = self::installed() ? (require self::configPath()) : null;
+        $cfg = $embeddedConfig ?? (self::installed() ? (require self::configPath()) : null);
         $trust = !empty($cfg['trust_proxy']);
         if (!$cfg || empty($cfg['url'])) {
             $host = preg_replace('/[^A-Za-z0-9.\-:\[\]]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
@@ -135,9 +143,14 @@ final class App
             Installer::handle(self::$req);
             return;
         }
-        self::setupErrors(!empty($cfg['debug']));
+        if ($embeddedConfig === null && !is_file(QP_STORAGE . '/.htaccess')) {
+            Protection::ensure(true); // re-create protection files lost during an upload
+        }
+        if ($embeddedConfig === null) {
+            self::setupErrors(!empty($cfg['debug']));
+        }
         self::boot($cfg);
-        self::$auth = new Auth(self::$c->users, self::$c->limiter, self::$req->isHttps($trust), (self::$basePath ?: '') . '/', QP_ROOT . '/storage/sessions');
+        self::$auth = new Auth(self::$c->users, self::$c->limiter, self::$req->isHttps($trust), (self::$basePath ?: '') . '/', QP_STORAGE . '/sessions');
         register_shutdown_function([self::class, 'afterResponse']);
 
         try {
@@ -188,15 +201,15 @@ final class App
         error_reporting(E_ALL);
         ini_set('display_errors', $debug ? '1' : '0');
         ini_set('log_errors', '1');
-        if (is_dir(QP_ROOT . '/storage/logs') && is_writable(QP_ROOT . '/storage/logs')) {
-            ini_set('error_log', QP_ROOT . '/storage/logs/php-errors.log');
+        if (is_dir(QP_STORAGE . '/logs') && is_writable(QP_STORAGE . '/logs')) {
+            ini_set('error_log', QP_STORAGE . '/logs/php-errors.log');
         }
     }
 
     public static function log(\Throwable $e): void
     {
         $line = sprintf("[%s] %s: %s @ %s:%d\n", gmdate('Y-m-d H:i:s'), get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
-        $file = QP_ROOT . '/storage/logs/app.log';
+        $file = QP_STORAGE . '/logs/app.log';
         if (@filesize($file) > 5 * 1024 * 1024) {
             @rename($file, $file . '.1');
         }

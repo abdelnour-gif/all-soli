@@ -1,5 +1,9 @@
 <?php
-/** Global view & request helpers (escaping, URLs, CSRF, small utilities). */
+/**
+ * Global view & request helpers (escaping, URLs, CSRF, small utilities).
+ * Inside WordPress the core functions with the same names (esc_html, sanitize_key…) are already
+ * loaded and behave the same way, so ours are only declared when missing.
+ */
 defined('QP_APP') || exit;
 
 use QueuePro\Core\App;
@@ -10,32 +14,40 @@ function qp(): \QueuePro\Container
 }
 
 // ------------------------------------------------------------------ escaping
-function esc_html($s): string
-{
-    return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+if (!function_exists('esc_html')) {
+    function esc_html($s): string
+    {
+        return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
 }
 
-function esc_attr($s): string
-{
-    return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+if (!function_exists('esc_attr')) {
+    function esc_attr($s): string
+    {
+        return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
 }
 
 /** Allows http(s), relative URLs, tel: and mailto:. Anything else (javascript:, data:) becomes ''. */
-function esc_url_raw($url): string
-{
-    $url = trim(str_replace(["\0", "\r", "\n", "\t"], '', (string) $url));
-    if ($url === '') {
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url): string
+    {
+        $url = trim(str_replace(["\0", "\r", "\n", "\t"], '', (string) $url));
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('#^(https?://|/|\?|\#|tel:|mailto:)#i', $url) || !preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+            return $url;
+        }
         return '';
     }
-    if (preg_match('#^(https?://|/|\?|\#|tel:|mailto:)#i', $url) || !preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
-        return $url;
-    }
-    return '';
 }
 
-function esc_url($url): string
-{
-    return esc_attr(esc_url_raw($url));
+if (!function_exists('esc_url')) {
+    function esc_url($url): string
+    {
+        return esc_attr(esc_url_raw($url));
+    }
 }
 
 function json_enc($v): string
@@ -45,16 +57,20 @@ function json_enc($v): string
 }
 
 // ------------------------------------------------------------------ input
-function sanitize_text_field($s): string
-{
-    $s = strip_tags((string) $s);
-    $s = preg_replace('/[\r\n\t ]+/u', ' ', $s) ?? '';
-    return trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $s) ?? '');
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($s): string
+    {
+        $s = strip_tags((string) $s);
+        $s = preg_replace('/[\r\n\t ]+/u', ' ', $s) ?? '';
+        return trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $s) ?? '');
+    }
 }
 
-function sanitize_key($s): string
-{
-    return preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) $s)) ?? '';
+if (!function_exists('sanitize_key')) {
+    function sanitize_key($s): string
+    {
+        return preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) $s)) ?? '';
+    }
 }
 
 // ------------------------------------------------------------------ URLs
@@ -71,7 +87,22 @@ function api_url(string $path = ''): string
 
 function asset(string $path): string
 {
-    return url('/assets/' . ltrim($path, '/')) . '?v=' . QP_VERSION;
+    $base = QP_ASSETS_URL !== '' ? rtrim(QP_ASSETS_URL, '/') : url('/assets');
+    return $base . '/' . ltrim($path, '/') . '?v=' . QP_VERSION;
+}
+
+/** Public URL of an uploaded image (relative to QP_UPLOADS). */
+function uploads_url(string $path = ''): string
+{
+    $base = QP_UPLOADS_URL !== '' ? rtrim(QP_UPLOADS_URL, '/') : url('/uploads');
+    return $base . '/' . ltrim($path, '/');
+}
+
+/** Public URL a file inside QP_STORAGE would have (used only to prove it is NOT reachable). */
+function storage_url(string $path = ''): string
+{
+    $base = QP_STORAGE_URL !== '' ? rtrim(QP_STORAGE_URL, '/') : url('/storage');
+    return $base . '/' . ltrim($path, '/');
 }
 
 /** Public link of a provider page (domain.com/{slug}/). */
@@ -86,10 +117,10 @@ function current_url(): string
 }
 
 /**
- * add_query_arg('k', 'v', $url) or add_query_arg(['k' => 'v'], $url).
- * Null values remove the key.
+ * qp_add_query_arg('k', 'v', $url) or qp_add_query_arg(['k' => 'v'], $url).
+ * Null values remove the key. Values are URL-encoded (unlike WordPress' add_query_arg).
  */
-function add_query_arg($key, $value = null, ?string $url = null): string
+function qp_add_query_arg($key, $value = null, ?string $url = null): string
 {
     if (is_array($key)) {
         $url = $value;
@@ -112,19 +143,21 @@ function add_query_arg($key, $value = null, ?string $url = null): string
     return isset($parts[1]) ? $out . '#' . $parts[1] : $out;
 }
 
-function remove_query_arg($keys, ?string $url = null): string
+function qp_remove_query_arg($keys, ?string $url = null): string
 {
     $args = [];
     foreach ((array) $keys as $k) {
         $args[$k] = null;
     }
-    return add_query_arg($args, $url ?? current_url());
+    return qp_add_query_arg($args, $url ?? current_url());
 }
 
-function selected($a, $b): void
-{
-    if ((string) $a === (string) $b) {
-        echo ' selected';
+if (!function_exists('selected')) {
+    function selected($a, $b): void
+    {
+        if ((string) $a === (string) $b) {
+            echo ' selected';
+        }
     }
 }
 

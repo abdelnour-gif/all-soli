@@ -18,6 +18,9 @@ final class ProviderService
         'tickets', 'providers', 'dashboard', 'account', 'super-admin', 'search', 'about', 'faq', 'contact',
         'explore', 'install', 'recover-admin', 'assets', 'uploads', 'storage', 'app', 'bin', 'tests', 'templates',
         'index', 'index-php', 'robots-txt', 'favicon-ico', 'sitemap', 'home', 'help', 'privacy', 'terms', 'static',
+        // WordPress edition
+        'wp-content', 'wp-includes', 'wp-cron', 'wp-cron-php', 'wp-login-php', 'xmlrpc', 'xmlrpc-php', 'feed', 'comments',
+        'page', 'category', 'tag', 'author', 'embed', 'trackback', 'sitemap-xml', 'wp-sitemap', 'queuepro-data',
     ];
     private const PROFILE_FIELDS_OWNER = [
         'name_ar', 'name_en', 'description_ar', 'description_en', 'address', 'phone',

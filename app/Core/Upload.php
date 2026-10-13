@@ -9,7 +9,7 @@ defined('QP_APP') || exit;
  * Image uploads (provider logo / cover).
  *  - JPEG / PNG / WebP only, ≤ 3 MB, verified from the file content (not the name).
  *  - With GD: re-encoded and resized (max 1600 px) → strips metadata and any hidden payload.
- *  - Stored under uploads/YYYY/MM/ with a random name; uploads/.htaccess forbids running scripts.
+ *  - Stored under uploads/YYYY/MM/ (QP_UPLOADS) with a random name; uploads/.htaccess forbids running scripts.
  */
 final class Upload
 {
@@ -32,8 +32,8 @@ final class Upload
             throw new QueueException('invalid_input', 422, ['field' => 'file', 'reason' => 'type']);
         }
         $ext = self::TYPES[$mime];
-        $rel = 'uploads/' . gmdate('Y/m');
-        $dir = QP_ROOT . '/' . $rel;
+        $rel = gmdate('Y/m');
+        $dir = QP_UPLOADS . '/' . $rel;
         if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
             throw new \RuntimeException('Cannot create upload directory');
         }
@@ -46,7 +46,7 @@ final class Upload
             throw new \RuntimeException('Cannot store upload');
         }
         @chmod($dest, 0644);
-        return url('/' . $rel . '/' . $name);
+        return uploads_url($rel . '/' . $name);
     }
 
     private static function reencode(string $src, string $mime, int $w, int $h, string $dest): bool

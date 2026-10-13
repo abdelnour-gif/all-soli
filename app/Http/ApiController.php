@@ -176,6 +176,9 @@ final class ApiController
         if ($origin === '' || $origin === 'null') {
             return $origin === '';
         }
+        if (!preg_match('#^https?://[^\s,/]+$#i', $origin)) {
+            return false; // a real browser sends exactly one "scheme://host[:port]"
+        }
         $o = parse_url($origin);
         $b = parse_url(App::baseUrl());
         return isset($o['host'], $b['host']) && strtolower($o['host']) === strtolower($b['host'])
@@ -706,12 +709,11 @@ final class ApiController
     private function adminHealth(Request $r): array
     {
         $db = $this->c->db;
-        $root = QP_ROOT;
         $dbFile = $db->isSqlite() ? (string) (App::config()['db']['path'] ?? '') : '';
-        $probe = $root . '/storage/.probe';
+        $probe = QP_STORAGE . '/.probe';
         $secret = bin2hex(random_bytes(8));
         @file_put_contents($probe, $secret);
-        $res = \QueuePro\Core\HttpClient::request(url('/storage/.probe'), ['timeout' => 4]);
+        $res = \QueuePro\Core\HttpClient::request(storage_url('.probe'), ['timeout' => 4]);
         @unlink($probe);
         $exposed = $res['status'] === 200 && trim($res['body']) === $secret;
         $maint = Cache::get('maint_at');
@@ -720,15 +722,16 @@ final class ApiController
             'php' => PHP_VERSION,
             'db' => ['driver' => $db->driver(), 'version' => $db->version(), 'size' => $dbFile && is_file($dbFile) ? filesize($dbFile) : null],
             'storage_protected' => $res['status'] === 0 ? null : !$exposed,
-            'storage_writable' => is_writable($root . '/storage'),
-            'uploads_writable' => is_writable($root . '/uploads'),
+            'storage_writable' => is_writable(QP_STORAGE),
+            'uploads_writable' => is_dir(QP_UPLOADS) ? is_writable(QP_UPLOADS) : is_writable(dirname(QP_UPLOADS)),
+            'wordpress' => QP_WP,
             'https' => stripos(App::baseUrl(), 'https://') === 0,
             'extensions' => ['gd' => function_exists('imagecreatefromstring'), 'curl' => function_exists('curl_init'), 'apcu' => function_exists('apcu_fetch'), 'mbstring' => function_exists('mb_strlen')],
             'maintenance_last_run' => $maint ? gmdate('Y-m-d H:i:s', (int) $maint) : null,
             'pending_messages' => (int) $db->getVar("SELECT COUNT(*) FROM qp_notifications WHERE status IN ('pending','sending')"),
             'failed_messages' => (int) $db->getVar("SELECT COUNT(*) FROM qp_notifications WHERE status = 'failed'"),
             'sms_driver' => $this->c->settings->string('sms_driver'),
-            'disk_free' => @disk_free_space($root) ?: null,
+            'disk_free' => @disk_free_space(QP_STORAGE) ?: null,
             'books_ok' => $this->booksBalanced(),
         ];
     }
@@ -753,12 +756,12 @@ final class ApiController
         $stamp = gmdate('Ymd-His');
         $this->c->audit->log($this->adminActor(), 'system.backup', 'system', null);
         if ($db->isSqlite()) {
-            $file = QP_ROOT . '/storage/backups/queuepro-' . $stamp . '-' . bin2hex(random_bytes(4)) . '.sqlite';
+            $file = QP_STORAGE . '/backups/queuepro-' . $stamp . '-' . bin2hex(random_bytes(4)) . '.sqlite';
             $db->exec("VACUUM INTO '" . str_replace("'", "''", $file) . "'");
             $name = 'queuepro-backup-' . $stamp . '.sqlite';
             $type = 'application/vnd.sqlite3';
         } else {
-            $file = QP_ROOT . '/storage/backups/queuepro-' . $stamp . '-' . bin2hex(random_bytes(4)) . '.json';
+            $file = QP_STORAGE . '/backups/queuepro-' . $stamp . '-' . bin2hex(random_bytes(4)) . '.json';
             $out = ['app' => 'QueuePro', 'version' => QP_VERSION, 'created_at' => gmdate('c'), 'tables' => []];
             foreach (\QueuePro\Database\Schema::TABLES as $t) {
                 $out['tables'][$t] = $db->getResults('SELECT * FROM ' . $db->table($t));

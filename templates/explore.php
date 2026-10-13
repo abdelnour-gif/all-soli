@@ -44,9 +44,9 @@ qp_header(qp_t('providers') . ' — ' . qp_brand(), ['wide' => true, 'nav' => 'p
   </form>
 
   <nav class="qp-chips" aria-label="<?php echo esc_attr(qp_t('all_categories')); ?>">
-    <a href="<?php echo esc_url(add_query_arg(array_diff_key($base, ['category' => 1]), url('/explore/'))); ?>" class="<?php echo $cat === '' ? 'is-active' : ''; ?>"><?php echo qp_icon('grid', 16) . esc_html(qp_t('all_categories')); ?></a>
+    <a href="<?php echo esc_url(qp_add_query_arg(array_diff_key($base, ['category' => 1]), url('/explore/'))); ?>" class="<?php echo $cat === '' ? 'is-active' : ''; ?>"><?php echo qp_icon('grid', 16) . esc_html(qp_t('all_categories')); ?></a>
     <?php foreach ($cats as $ca): ?>
-      <a href="<?php echo esc_url(add_query_arg(['category' => $ca['slug']] + $base, url('/explore/'))); ?>" class="<?php echo $cat === $ca['slug'] ? 'is-active' : ''; ?>"><?php echo qp_icon($ca['icon'], 16) . esc_html(qp_name($ca)); ?></a>
+      <a href="<?php echo esc_url(qp_add_query_arg(['category' => $ca['slug']] + $base, url('/explore/'))); ?>" class="<?php echo $cat === $ca['slug'] ? 'is-active' : ''; ?>"><?php echo qp_icon($ca['icon'], 16) . esc_html(qp_name($ca)); ?></a>
     <?php endforeach; ?>
   </nav>
 
@@ -54,8 +54,8 @@ qp_header(qp_t('providers') . ' — ' . qp_brand(), ['wide' => true, 'nav' => 'p
     <?php if ($rows): ?>
       <div class="qp-cards"><?php foreach ($rows as $p) echo qp_provider_card($p); ?></div>
       <div class="qp-pager">
-        <?php if ($page > 1): ?><a href="<?php echo esc_url(add_query_arg(['pg' => $page - 1] + $base, url('/explore/'))); ?>"><?php echo esc_html($L('السابق', 'Previous')); ?></a><?php endif; ?>
-        <?php if ($hasMore): ?><a href="<?php echo esc_url(add_query_arg(['pg' => $page + 1] + $base, url('/explore/'))); ?>"><?php echo esc_html($L('المزيد', 'More')); ?></a><?php endif; ?>
+        <?php if ($page > 1): ?><a href="<?php echo esc_url(qp_add_query_arg(['pg' => $page - 1] + $base, url('/explore/'))); ?>"><?php echo esc_html($L('السابق', 'Previous')); ?></a><?php endif; ?>
+        <?php if ($hasMore): ?><a href="<?php echo esc_url(qp_add_query_arg(['pg' => $page + 1] + $base, url('/explore/'))); ?>"><?php echo esc_html($L('المزيد', 'More')); ?></a><?php endif; ?>
       </div>
     <?php else: ?>
       <div class="qp-empty"><?php echo qp_icon('search', 32); ?><p><?php echo esc_html($L('لا يوجد مزوّدون مطابقون لبحثك.', 'No providers match your search.')); ?></p>

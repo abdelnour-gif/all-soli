@@ -68,7 +68,7 @@ qp_header(qp_brand() . ' — ' . $L('انتظر دورك بكل سهولة', 'Wa
   <div class="qp-sec-head"><h2><?php echo esc_html($L('التصنيفات', 'Categories')); ?></h2><a href="<?php echo esc_url(url('/explore/')); ?>"><?php echo esc_html($L('عرض الكل', 'View all')); ?></a></div>
   <div class="qp-cats">
     <?php foreach ($cats as $ca): ?>
-      <a class="qp-cat" href="<?php echo esc_url(add_query_arg('category', $ca['slug'], url('/explore/'))); ?>">
+      <a class="qp-cat" href="<?php echo esc_url(qp_add_query_arg('category', $ca['slug'], url('/explore/'))); ?>">
         <span class="qp-cat-ico"><?php echo qp_icon($ca['icon'], 24); ?></span><?php echo esc_html(qp_name($ca)); ?>
       </a>
     <?php endforeach; ?>

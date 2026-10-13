@@ -12,21 +12,32 @@ if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
 }
-define('QP_APP', true);
-define('QP_ROOT', dirname(__DIR__));
-define('QP_VERSION', '2.0.0');
-require QP_ROOT . '/app/autoload.php';
-require QP_ROOT . '/app/helpers.php';
-
 use QueuePro\Core\App;
 use QueuePro\Core\Maintenance;
 use QueuePro\Services\UserService;
 
-if (!App::installed()) {
-    fwrite(STDERR, "Not installed yet: open the site in a browser to run the installer.\n");
-    exit(1);
+// WordPress edition (wp-content/plugins/queuepro/bin): load WordPress, which loads the plugin.
+$wpLoad = dirname(__DIR__, 4) . '/wp-load.php';
+if (strpos(str_replace('\\', '/', __DIR__), '/wp-content/plugins/') !== false && is_file($wpLoad)) {
+    $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_HOST'] ?? (string) parse_url((string) getenv('QP_WP_URL') ?: 'http://localhost', PHP_URL_HOST);
+    require $wpLoad;
+    if (!defined('QP_WP') || !\QueuePro\WordPress\Plugin::installed()) {
+        fwrite(STDERR, "Activate the QueuePro plugin and finish its setup in wp-admin first.\n");
+        exit(1);
+    }
+    App::boot(\QueuePro\WordPress\Plugin::config());
+} else {
+    define('QP_APP', true);
+    define('QP_ROOT', dirname(__DIR__));
+    define('QP_VERSION', '2.1.0');
+    require QP_ROOT . '/app/autoload.php';
+    require QP_ROOT . '/app/helpers.php';
+    if (!App::installed()) {
+        fwrite(STDERR, "Not installed yet: open the site in a browser to run the installer.\n");
+        exit(1);
+    }
+    App::boot(require App::configPath());
 }
-App::boot(require App::configPath());
 $c = App::container();
 $cmd = $argv[1] ?? 'help';
 
@@ -49,13 +60,13 @@ switch ($cmd) {
         if ($db->isSqlite()) {
             echo 'SQLite integrity: ' . $db->getVar('PRAGMA integrity_check') . "\n";
         }
-        foreach (['storage', 'storage/cache', 'storage/logs', 'storage/sessions', 'uploads'] as $d) {
-            echo str_pad($d, 20) . (is_writable(QP_ROOT . '/' . $d) ? 'writable' : 'NOT WRITABLE') . "\n";
+        foreach ([QP_STORAGE, QP_STORAGE . '/cache', QP_STORAGE . '/logs', QP_STORAGE . '/sessions', QP_UPLOADS] as $d) {
+            echo str_pad($d, 50) . (is_writable($d) ? 'writable' : 'NOT WRITABLE') . "\n";
         }
         break;
 
     case 'backup':
-        $file = $argv[2] ?? QP_ROOT . '/storage/backups/manual-' . gmdate('Ymd-His') . ($c->db->isSqlite() ? '.sqlite' : '.json');
+        $file = $argv[2] ?? QP_STORAGE . '/backups/manual-' . gmdate('Ymd-His') . ($c->db->isSqlite() ? '.sqlite' : '.json');
         if ($c->db->isSqlite()) {
             $c->db->exec("VACUUM INTO '" . str_replace("'", "''", $file) . "'");
         } else {

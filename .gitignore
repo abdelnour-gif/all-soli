@@ -1,0 +1,10 @@
+# Private data created at runtime — never commit
+/storage/*
+!/storage/.htaccess
+!/storage/index.php
+/uploads/*
+!/uploads/.htaccess
+!/uploads/index.php
+/dist/
+.DS_Store
+*.swp

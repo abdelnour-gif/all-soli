@@ -50,7 +50,9 @@ final class Connection
                 } catch (\PDOException $e) {
                 }
             } else {
-                $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $cfg['host'] ?? '127.0.0.1', (int) ($cfg['port'] ?? 3306), $cfg['name'] ?? '');
+                $dsn = !empty($cfg['socket'])
+                    ? sprintf('mysql:unix_socket=%s;dbname=%s;charset=utf8mb4', $cfg['socket'], $cfg['name'] ?? '')
+                    : sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $cfg['host'] ?? '127.0.0.1', (int) ($cfg['port'] ?? 3306), $cfg['name'] ?? '');
                 $this->pdo = new \PDO($dsn, $cfg['user'] ?? '', $cfg['pass'] ?? '', $opts);
                 $this->pdo->exec("SET time_zone = '+00:00', sql_mode = 'STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION'");
             }

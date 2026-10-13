@@ -44,7 +44,7 @@ if (!$user || $user['role'] !== 'admin') {
     return;
 }
 
-$self = remove_query_arg('lang');
+$self = qp_remove_query_arg('lang');
 $config = [
     'api'     => api_url('admin'),
     'nonce'   => csrf_token(),
@@ -92,8 +92,8 @@ $config = [
     <h1 id="qpa-title"></h1>
     <div class="qpa-top-end">
       <div class="qp-lang">
-        <a href="<?php echo esc_url(add_query_arg('lang', 'ar', $self)); ?>" class="<?php echo $lang === 'ar' ? 'is-active' : ''; ?>">AR</a>
-        <a href="<?php echo esc_url(add_query_arg('lang', 'en', $self)); ?>" class="<?php echo $lang === 'en' ? 'is-active' : ''; ?>">EN</a>
+        <a href="<?php echo esc_url(qp_add_query_arg('lang', 'ar', $self)); ?>" class="<?php echo $lang === 'ar' ? 'is-active' : ''; ?>">AR</a>
+        <a href="<?php echo esc_url(qp_add_query_arg('lang', 'en', $self)); ?>" class="<?php echo $lang === 'en' ? 'is-active' : ''; ?>">EN</a>
       </div>
       <span class="qpa-user"><?php echo qp_icon('user', 16) . esc_html($config['user']); ?></span>
     </div>

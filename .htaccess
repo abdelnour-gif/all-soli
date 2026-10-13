@@ -1,0 +1,29 @@
+# QueuePro (standalone edition) — Apache / LiteSpeed
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Let's Encrypt / AutoSSL checks must keep working
+  RewriteRule ^\.well-known/ - [L]
+  # Hidden files and internal folders: never served
+  RewriteRule (^|/)\. - [F,L]
+  RewriteRule ^(storage|app|bin|tests|templates|docs)(/|$) - [F,L]
+  RewriteRule ^index\.php$ - [L]
+  # Real images, CSS and JS are served directly
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^(assets|uploads)/ - [L]
+  # Everything else goes to the application
+  RewriteRule ^ index.php [L]
+</IfModule>
+<FilesMatch "\.(sqlite|sqlite3|db|log|md|lock|bak|sql|json|dist|sh)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options nosniff
+</IfModule>

@@ -1,0 +1,21 @@
+# QueuePro: uploaded images — static files only, scripts are never executed
+Options -Indexes -ExecCGI
+<FilesMatch "\.(php[0-9]?|phtml|phar|pht|pl|py|cgi|sh|shtml|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options nosniff
+  Header set Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox"
+</IfModule>

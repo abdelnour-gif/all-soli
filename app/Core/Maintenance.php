@@ -11,7 +11,7 @@ final class Maintenance
 {
     public static function run(Container $c, bool $force = false): array
     {
-        $lock = @fopen(QP_ROOT . '/storage/maintenance.lock', 'c');
+        $lock = @fopen(QP_STORAGE . '/maintenance.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
             return ['skipped' => true];
         }
@@ -27,7 +27,7 @@ final class Maintenance
             $c->otp->purgeOld();
             $c->db->query('DELETE FROM qp_idempotency_keys WHERE created_at < %s', [gmdate('Y-m-d H:i:s', time() - 2 * 86400)]);
             Cache::prune();
-            foreach (glob(QP_ROOT . '/storage/backups/queuepro-*') ?: [] as $f) {
+            foreach (glob(QP_STORAGE . '/backups/queuepro-*') ?: [] as $f) {
                 if (@filemtime($f) < time() - 3600) {
                     @unlink($f); // leftovers of interrupted backup downloads
                 }

@@ -16,7 +16,7 @@ final class RecoverAdmin
 {
     public static function handle(Request $r): void
     {
-        $file = QP_ROOT . '/storage/recover.txt';
+        $file = QP_STORAGE . '/recover.txt';
         if (!is_file($file)) {
             App::errorPage(404);
             return;
