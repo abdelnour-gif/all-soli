@@ -27,49 +27,141 @@ define('DB_PATH', ROOT_PATH . '/database/store.db');
 function getDB(): PDO {
     static $db = null;
     if ($db === null) {
-        $isNew = !file_exists(DB_PATH);
-        $db = new PDO('sqlite:' . DB_PATH);
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $db->exec('PRAGMA foreign_keys = ON');
-        // Only touch the schema when the file is new or the code was updated —
-        // running 13 CREATE TABLE statements on every storefront hit is pure
-        // waste on shared hosting.
-        if ($isNew || schemaNeedsUpgrade($db)) {
-            createSchema($db);
-            migrateSchema($db);
-            markSchemaCurrent($db);
-        }
-        if ($isNew) {
-            seedDatabase($db);
-        }
-        // One-time switch to the cosmetics store. Earlier storefronts are hidden, orders kept.
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'theme_beauty'")->fetchColumn() !== '1') {
-            applyBeautyTheme($db, false);
-        }
-        // One-time: FATI KRITI branding, "about us" text, new banners and the «زيادة الوزن» category.
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'fk_brand_1'")->fetchColumn() !== '1') {
-            applyFatiKriti($db);
-        }
-        // One-time: «زيادة الوزن» gets its own icon (full body).
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'fk_icon_belly'")->fetchColumn() !== '1') {
-            $db->exec("UPDATE categories SET icon = 'belly' WHERE name = 'زيادة الوزن' AND icon IN ('', 'flame')");
-            $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('fk_icon_belly', '1')");
-        }
-        // One-time: storefront v2 (top bar with icons, 3 hero slides, trust card, featured products, 3-part band).
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'fk_layout_2'")->fetchColumn() !== '1') {
-            applyFatiLayout($db);
-        }
-        // One-time: the store becomes MONTA9A — medical devices and supplies (previous catalogue hidden, orders kept).
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'theme_medical_1'")->fetchColumn() !== '1') {
-            applyMedicalTheme($db);
-        }
-        // One-time: switch the floating WhatsApp button on.
-        if ((string)$db->query("SELECT value FROM settings WHERE key = 'wa_float_fix'")->fetchColumn() !== '1') {
-            $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('wa_float_on', '1'), ('wa_float_fix', '1')");
+        try {
+            $db = new PDO('sqlite:' . DB_PATH, null, null, [PDO::ATTR_TIMEOUT => 15]);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            // Two visitors writing at the same moment wait for each other instead of failing with "database is locked".
+            $db->exec('PRAGMA busy_timeout = 15000');
+            $db->exec('PRAGMA foreign_keys = ON');
+            if (storeNeedsSetup($db)) {
+                // Only one request at a time may create / update the store (otherwise two simultaneous first
+                // visits would both seed it and every product would appear twice).
+                $lock = @fopen(ROOT_PATH . '/database/.setup.lock', 'c');
+                if ($lock) flock($lock, LOCK_EX);
+                try {
+                    if (storeNeedsSetup($db)) setupStore($db);
+                } finally {
+                    if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
+                }
+            }
+        } catch (Throwable $e) {
+            if ($db instanceof PDO && $db->inTransaction()) $db->rollBack();
+            error_log('Store database error: ' . $e->getMessage());
+            $db = null;
+            if (!headers_sent()) { http_response_code(503); header('Content-Type: text/html; charset=UTF-8'); header('Retry-After: 30'); }
+            exit('<!DOCTYPE html><html lang="ar" dir="rtl"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>صيانة</title>'
+               . '<body style="font-family:system-ui,sans-serif;text-align:center;padding:60px 16px;color:#333">'
+               . '<h1 style="color:#12805c">المتجر قيد الصيانة</h1><p>نعود خلال لحظات، شكراً لصبركم.</p>'
+               . '<p style="color:#888;font-size:13px">إن استمرت هذه الرسالة: تأكد أن مجلد <b>database</b> قابل للكتابة (صلاحيات 755) وأن إضافة pdo_sqlite مفعّلة.</p></body></html>');
         }
     }
     return $db;
+}
+
+/** One-time updates, in the order they must run: settings flag => function. */
+function storeUpdates(): array {
+    return [
+        // Switch to the cosmetics store (earlier storefronts are hidden, orders kept).
+        'theme_beauty'     => fn(PDO $db) => applyBeautyTheme($db, false),
+        // FATI KRITI branding, "about us" text, new banners and the «زيادة الوزن» category.
+        'fk_brand_1'       => fn(PDO $db) => applyFatiKriti($db),
+        // «زيادة الوزن» gets its own icon (full body).
+        'fk_icon_belly'    => function (PDO $db) {
+            $db->exec("UPDATE categories SET icon = 'belly' WHERE name = 'زيادة الوزن' AND icon IN ('', 'flame')");
+            $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('fk_icon_belly', '1')");
+        },
+        // Storefront v2 (top bar with icons, 3 hero slides, trust card, featured products, 3-part band).
+        'fk_layout_2'      => fn(PDO $db) => applyFatiLayout($db),
+        // The store becomes MONTA9A — medical devices and supplies (previous catalogue hidden, orders kept).
+        'theme_medical_1'  => fn(PDO $db) => applyMedicalTheme($db),
+        // Switch the floating WhatsApp button on.
+        'wa_float_fix'     => fn(PDO $db) => $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('wa_float_on', '1'), ('wa_float_fix', '1')"),
+        // MONTA9A homepage exactly like the design (logo, hero, category pictures, bottom band).
+        'monta9a_design_1' => fn(PDO $db) => applyMonta9aDesign($db),
+    ];
+}
+
+/** True while the tables are missing/outdated or a one-time update has not run (a new store has none of the flags). */
+function storeNeedsSetup(PDO $db): bool {
+    try {
+        $keys = array_merge(['schema_version'], array_keys(storeUpdates()));
+        $in = implode(',', array_fill(0, count($keys), '?'));
+        $st = $db->prepare("SELECT key, value FROM settings WHERE key IN ($in)");
+        $st->execute($keys);
+        $have = $st->fetchAll(PDO::FETCH_KEY_PAIR);
+        if ((string)($have['schema_version'] ?? '') !== SCHEMA_VERSION) return true;
+        foreach (array_keys(storeUpdates()) as $k) if ((string)($have[$k] ?? '') !== '1') return true;
+        return false;
+    } catch (Throwable $e) {
+        return true; // tables do not exist yet
+    }
+}
+
+/** Create/upgrade the tables, seed an empty store, then run the pending one-time updates. */
+function setupStore(PDO $db): void {
+    if (schemaNeedsUpgrade($db)) {
+        createSchema($db);
+        migrateSchema($db);
+        markSchemaCurrent($db);
+    }
+    // A store that was never seeded (new or empty file): default settings, admin account, delivery prices.
+    if (!$db->query('SELECT 1 FROM wilayas LIMIT 1')->fetchColumn()) {
+        seedDatabase($db);
+    }
+    $flag = $db->prepare('SELECT value FROM settings WHERE key = ?');
+    foreach (storeUpdates() as $key => $run) {
+        $flag->execute([$key]);
+        $done = (string)$flag->fetchColumn() === '1';
+        $flag->closeCursor();
+        if ($done) continue;
+        try {
+            $run($db);
+        } catch (Throwable $e) {
+            // A failed update is undone and retried on the next visit; the shop keeps working meanwhile.
+            if ($db->inTransaction()) $db->rollBack();
+            error_log("Store update '$key' failed: " . $e->getMessage());
+            return;
+        }
+    }
+}
+
+/**
+ * MONTA9A — homepage like the design: logo, main hero picture, a picture on every category tile,
+ * the band at the bottom with its photo, and the sections in the design's order
+ * (hero · trust card · categories · featured products · band). Everything stays editable in the admin.
+ */
+function applyMonta9aDesign(PDO $db): void {
+    $db->beginTransaction();
+    $set = $db->prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    $get = fn(string $k) => (string)$db->query('SELECT value FROM settings WHERE key = ' . $db->quote($k))->fetchColumn();
+    $d = 'assets/img/seed/med/';
+
+    $db->prepare('UPDATE slides SET image = ? WHERE image = ?')->execute([$d . 'hero-main.webp', $d . 'hero1.webp']);
+    if ($get('logo') === '') { $set->execute(['logo', $d . 'logo.webp']); $set->execute(['logo_with_name', '0']); }
+    if (in_array($get('cta_image'), ['', $d . 'cta.webp'], true)) $set->execute(['cta_image', $d . 'cta-band.webp']);
+
+    // category tiles: the pictures of the design (only where the owner has not uploaded one)
+    $tiles = ['أجهزة قياس الضغط والنبض' => 5, 'أجهزة التنفس الاصطناعي' => 4, 'أجهزة الماساج والعلاج الطبيعي' => 3,
+              'أجهزة ومستلزمات الراحة والحركة' => 2, 'العناية الصحية والوقاية' => 1, 'ملحقات طبية متنوعة' => 0];
+    $up = $db->prepare("UPDATE categories SET image = ? WHERE name = ? AND (image IS NULL OR image = '')");
+    foreach ($tiles as $name => $n) $up->execute([$d . 'tile-' . $n . '.webp', $name]);
+
+    // «معاً نحو صحة أفضل» with the leaf icon, like the design
+    $why = json_decode($get('why'), true);
+    if (is_array($why)) {
+        foreach ($why as &$w) if (is_array($w) && ($w['title'] ?? '') === 'معاً نحو صحة أفضل' && ($w['icon'] ?? '') === 'heart-pulse') $w['icon'] = 'leaf';
+        unset($w);
+        $set->execute(['why', json_encode($why, JSON_UNESCAPED_UNICODE)]);
+    }
+
+    $order = ['hero', 'features', 'categories', 'featured', 'cta'];
+    $secs = array_map(fn($k) => ['key' => $k, 'on' => 1], $order);
+    foreach (array_keys(homeSectionLabels()) as $k) if (!in_array($k, $order, true)) $secs[] = ['key' => $k, 'on' => 0];
+    $set->execute(['home_sections', json_encode($secs)]);
+
+    $set->execute(['monta9a_design_1', '1']);
+    $db->commit();
 }
 
 /** FATI KRITI — «من نحن» text. */

@@ -161,7 +161,7 @@ adminHeader('الأقسام', 'categories');
     <label>الوصف القصير بالفرنسية (اختياري)<input type="text" name="description_fr" value="<?= e($form['description_fr'] ?? '') ?>" dir="ltr"></label>
     <label>الترتيب<input type="number" name="sort" value="<?= (int)$form['sort'] ?>"></label>
     <?php if ($form['image']): ?><img src="../<?= e($form['image']) ?>" alt="" style="max-width:160px;border-radius:10px"><label class="check"><input type="checkbox" name="remove_image"> حذف الصورة</label><?php endif; ?>
-    <label>صورة القسم (اختيارية — تحل محل الأيقونة داخل الدائرة، يُفضّل مربعة 300×300)<input type="file" name="image" accept="image/*"></label>
+    <label>صورة القسم (اختيارية — تظهر في مربع القسم بالصفحة الرئيسية؛ يُفضّل صورة عريضة بخلفية فاتحة 340×170. بدونها تظهر صور أول منتجات القسم)<input type="file" name="image" accept="image/*"></label>
     <label class="check"><input type="checkbox" name="show_menu" <?= $form['show_menu'] ? 'checked' : '' ?>> يظهر في القائمة العلوية (للأقسام الرئيسية)</label>
     <label class="check"><input type="checkbox" name="show_home" <?= $form['show_home'] ? 'checked' : '' ?>> يظهر كأيقونة في الصفحة الرئيسية</label>
     <label class="check"><input type="checkbox" name="active" <?= $form['active'] ? 'checked' : '' ?>> ظاهر في المتجر</label>

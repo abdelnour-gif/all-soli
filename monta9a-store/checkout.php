@@ -88,11 +88,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             $subtotal = 0;
             $items = [];
+            $need = [];   // the same product in two colours/sizes counts once against its stock
             foreach ($lines as $l) {
                 $st = $db->prepare('SELECT stock, price, name FROM products WHERE id = ? AND active = 1');
                 $st->execute([$l['product']['id']]);
                 $fresh = $st->fetch();
-                if (!$fresh || $fresh['stock'] < $l['qty']) {
+                $pid = (int)$l['product']['id'];
+                $need[$pid] = ($need[$pid] ?? 0) + (int)$l['qty'];
+                if (!$fresh || (int)$fresh['stock'] < $need[$pid]) {
                     throw new RuntimeException(tx('الكمية المطلوبة من "', 'La quantité demandée de « ') . tr($l['product'], 'name') . tx('" غير متوفرة حالياً', ' » n\'est plus disponible'));
                 }
                 $subtotal += $fresh['price'] * $l['qty'];
@@ -105,10 +108,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$old['name'], $phone, $wilaya['id'], $wilaya['id'] . ' - ' . $wilaya['name_ar'], $commune[0], $commune[1], $desk, $old['address'], $delivery, $deliveryPrice, $subtotal, $wantWrap ? 1 : 0, $wrapCost, $giftMessage, $subtotal + $deliveryPrice + $wrapCost, $old['notes'], $_SERVER['REMOTE_ADDR'] ?? '', $courierKey]);
             $orderId = (int)$db->lastInsertId();
             $ins = $db->prepare('INSERT INTO order_items (order_id, product_id, product_name, color, qty, price) VALUES (?,?,?,?,?,?)');
-            $dec = $db->prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
+            // only takes from the stock when enough is left (two customers ordering the last piece at the same moment)
+            $dec = $db->prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?');
             foreach ($items as $it) {
                 $ins->execute([$orderId, $it[0], $it[1], $it[2], $it[3], $it[4]]);
-                $dec->execute([$it[3], $it[0]]);
+                $dec->execute([$it[3], $it[0], $it[3]]);
+                if ($dec->rowCount() !== 1) {
+                    throw new RuntimeException(tx('الكمية المطلوبة من "', 'La quantité demandée de « ') . $it[1] . tx('" غير متوفرة حالياً', ' » n\'est plus disponible'));
+                }
             }
             $db->commit();
             if (!$buyNow) $_SESSION['cart'] = [];

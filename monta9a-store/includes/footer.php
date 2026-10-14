@@ -50,6 +50,7 @@ if (!str_starts_with($waNum, '213') && str_starts_with($waNum, '0')) $waNum = '2
       <h4><?= tx('روابط سريعة', 'Liens rapides') ?></h4>
       <a href="shop.php"><?= tx('المنتجات', 'Produits') ?></a>
       <a href="cart.php"><?= tx('سلة المشتريات', 'Panier') ?></a>
+      <a href="wishlist.php"><?= tx('المفضلة', 'Mes favoris') ?></a>
       <a href="track.php"><?= tx('تتبع الطلبات', 'Suivi de commande') ?></a>
       <a href="contact.php"><?= tx('تواصل معنا', 'Contactez-nous') ?></a>
     </div>

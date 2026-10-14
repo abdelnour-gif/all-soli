@@ -78,11 +78,17 @@ foreach ($sections as $sec):
     <div class="cat-tiles">
       <?php foreach ($homeCats as $c):
           // picture of the tile: the category's first products (no picture to upload)
-          $cIds = implode(',', array_map('intval', categoryWithChildren((int)$c['id'])));
+          // the category's own picture when it has one, otherwise its first products (no picture to upload)
           $cPics = [];
-          foreach ($productList("p.category_id IN ($cIds)", 'p.is_featured DESC, p.id DESC', 2) as $cp) $cPics[] = productThumb($cp); ?>
-      <a href="shop.php?cat=<?= (int)$c['id'] ?>" class="cat-tile<?= $cPics ? ' has-pic' : '' ?>">
-        <span class="ct-box"><?php if ($cPics): ?><?php foreach ($cPics as $cpi): ?><img src="<?= e($cpi) ?>" alt="" loading="lazy"><?php endforeach; ?><?php else: ?><?= icon(($c['icon'] ?? '') ?: 'book-open', 58) ?><?php endif; ?></span>
+          if (!empty($c['image'])) {
+              $cOwn = true;
+          } else {
+              $cOwn = false;
+              $cIds = implode(',', array_map('intval', categoryWithChildren((int)$c['id'])));
+              foreach ($productList("p.category_id IN ($cIds)", 'p.is_featured DESC, p.id DESC', 2) as $cp) $cPics[] = productThumb($cp);
+          } ?>
+      <a href="shop.php?cat=<?= (int)$c['id'] ?>" class="cat-tile<?= $cOwn ? ' has-own' : ($cPics ? ' has-pic' : '') ?>">
+        <span class="ct-box"><?php if ($cOwn): ?><img src="<?= e($c['image']) ?>" alt="" loading="lazy"><?php elseif ($cPics): ?><?php foreach ($cPics as $cpi): ?><img src="<?= e($cpi) ?>" alt="" loading="lazy"><?php endforeach; ?><?php else: ?><?= icon(($c['icon'] ?? '') ?: 'book-open', 58) ?><?php endif; ?></span>
         <span class="ct-foot"><strong><?= e(tr($c, 'name')) ?></strong><span class="ct-go"><span class="flip"><?= icon('chev-r', 15) ?></span></span></span>
       </a>
       <?php endforeach; ?>
@@ -96,7 +102,8 @@ foreach ($sections as $sec):
         foreach (array_values(array_filter(topCategories(), fn($c) => (int)$c['show_home'] === 1)) as $c):
             $ids = implode(',', array_map('intval', categoryWithChildren((int)$c['id'])));
             $rowItems = $productList("p.category_id IN ($ids)", 'p.is_featured DESC, p.id DESC', 8);
-            if (!$rowItems) continue; ?>
+            if (!$rowItems) continue;
+            if (str_contains((string)$c['image'], '/seed/med/tile-')) $c['image'] = ''; ?>
 <?php $split = $c['image'] && count($rowItems) <= 2; // few products: banner and cards side by side ?>
 <section class="section cat-row-sec">
   <div class="container">

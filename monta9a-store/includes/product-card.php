@@ -18,8 +18,8 @@ $needsChoice = count($pColors) > 1 || count($pSizes) > 1;
     </a>
     <div class="p-badges">
       <?php if ($isOut): ?><span class="p-badge out"><?= tx('نفد', 'Épuisé') ?></span><?php endif; ?>
-      <?php if ($discount): ?><span class="p-badge sale">-<?= $discount ?>%</span><?php endif; ?>
-      <?php if ($pBadge !== ''): ?><span class="p-badge hot"><?= e($pBadge) ?></span><?php elseif ($p['is_new']): ?><span class="p-badge new"><?= tx('جديد', 'Nouveau') ?></span><?php endif; ?>
+      <?php // one label per card, like the design: the product's own label, else «جديد», else the discount
+      if ($pBadge !== ''): ?><span class="p-badge hot"><?= e($pBadge) ?></span><?php elseif ($p['is_new']): ?><span class="p-badge new"><?= tx('جديد', 'Nouveau') ?></span><?php elseif ($discount): ?><span class="p-badge sale">-<?= $discount ?>%</span><?php endif; ?>
     </div>
     <button class="wish-btn <?= inWishlist((int)$p['id']) ? 'active' : '' ?>" data-wish="<?= (int)$p['id'] ?>" aria-label="<?= tx('أضف إلى المفضلة', 'Ajouter aux favoris') ?>"><?= icon('heart', 18) ?></button>
     <?php if (!$isOut): ?>

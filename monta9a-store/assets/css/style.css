@@ -1250,3 +1250,110 @@ body { background: #fff; color: var(--ink); font-size: 14px; }
 /* name + Arabic tagline under it */
 .logo-tag { letter-spacing: 0; text-transform: none; font-size: 11.5px; font-weight: 700; }
 html[lang="ar"] .logo-tag { font-family: var(--font); }
+
+/* ==========================================================================
+   MONTA9A — homepage as in the design
+   (logo picture · round search · «حسابي / تسجيل الدخول» · tinted menu with lists ·
+   full-width hero · trust card · picture tiles · 6 product cards · band at the bottom)
+   ========================================================================== */
+/* top bar: 4 messages spread over the width */
+.tb-items { flex: 1; justify-content: space-around; }
+.tb-item bdi { unicode-bidi: isolate; }
+
+/* header */
+.logo img { width: auto; height: 66px; max-width: 220px; object-fit: contain; }
+.search-box { max-width: 600px; height: 48px; border: 1.5px solid #dbe5e0; padding-inline-end: 0; }
+.search-box input { padding: 0 22px; font-size: 14px; }
+.search-box button { width: 64px; height: 48px; margin: -1.5px; margin-inline-end: -1.5px; border-radius: 0; border-start-end-radius: 30px; border-end-end-radius: 30px; }
+.search-box button .ic { width: 21px; height: 21px; }
+.header-actions { gap: 34px; }
+.hc-link { gap: 9px; font-size: 14px; }
+.hc-link .ic { color: #3b4a43; }
+.hc-cart .hc-btn .ic { width: 32px; height: 32px; }
+
+/* menu bar: home as a dark green block, every entry with its icon and arrow */
+.main-nav { gap: 4px 30px; min-height: 54px; overflow: visible; flex-wrap: wrap; }
+.nav-link { font-size: 13.5px; }
+.nav-link .nl-ic .ic { width: 19px; height: 19px; }
+.nav-home { align-self: stretch; padding: 0 22px; border-radius: 8px 8px 0 0; margin-top: 6px; background: var(--dark); box-shadow: none; font-size: 14px; }
+.nav-home .ic { width: 19px; height: 19px; }
+.dropdown { min-width: 240px; }
+.dropdown a { font-size: 13.5px; }
+
+/* hero: the picture fills the width, dots like the design */
+.hero .slide-pic img { width: 100%; height: auto; }
+.hero-dots { bottom: 12px; left: 28%; }
+.hero-dots button { width: 9px; height: 9px; background: rgba(255, 255, 255, .85); box-shadow: 0 0 0 1px rgba(0, 0, 0, .08); }
+.hero-dots button.active { width: 9px; background: var(--accent); }
+
+/* trust card */
+.trust-strip { padding-top: 16px; }
+.trust-grid { background: linear-gradient(90deg, #f3f9f6, #fff 50%, #f3f9f6); padding: 18px 6px; }
+
+/* category tiles with their own picture */
+.cats-section { padding-top: 20px; padding-bottom: 6px; }
+.cat-tile { background: linear-gradient(180deg, #eef7f2, #e4f2ea); }
+.cat-tile.has-own .ct-box { padding: 0; height: 128px; }
+.cat-tile.has-own .ct-box img { width: 100%; height: 100%; flex: none; object-fit: cover; object-position: center 40%; transform: none; mix-blend-mode: normal; }
+.cat-tile.has-own:hover .ct-box img { transform: scale(1.05); }
+.ct-foot { padding: 10px 14px 14px; }
+.ct-foot strong { font-size: 13.5px; }
+.ct-go { width: 30px; height: 30px; background: #1f2b26; }
+
+/* featured products: title with underline, 6 cards in one row */
+.products-section .sec-head { border-bottom: 1px solid #e3ebe7; padding-bottom: 0; margin-bottom: 20px; }
+.products-section .sec-head h2 { padding-bottom: 10px; margin-bottom: -1px; border-bottom: 3px solid var(--accent); font-size: 21px; }
+.products-section .sec-head .see-all { padding-bottom: 10px !important; }
+.products-section .sh-ic .ic { width: 25px; height: 25px; }
+.products-section .products-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.p-badges { inset-inline-start: 8px; top: 8px; }
+.p-badge, .p-badge.hot, .p-badge.new, .p-badge.sale { background: var(--accent); border-radius: 5px; font-size: 11px; font-weight: 700; padding: 1px 8px; }
+.wish-btn { color: #9aa29e; }
+.p-name { font-size: 13.5px; font-weight: 700; color: #262626; }
+.p-price { color: #1d2b25; font-size: 17px; font-weight: 800; margin-top: auto; padding-top: 4px; }
+.p-price del { font-size: 12px; }
+.p-cart-btn { height: 38px; border-radius: 8px; width: 92%; margin-inline: auto; }
+
+/* band at the bottom: one soft panel (photo · promise · quality) + the WhatsApp box */
+.cta-section { padding-top: 26px; }
+.cta-strip { display: grid; grid-template-columns: 2.75fr 1fr; gap: 10px; }
+.cta-info { display: flex; align-items: stretch; background: linear-gradient(90deg, #f1f8f4, #e8f4ed); border-radius: 14px; overflow: hidden; min-height: 92px; }
+.cta-img { display: block; flex: 0 0 31%; background-size: cover; background-position: center; -webkit-mask-image: linear-gradient(to left, #000 70%, transparent); mask-image: linear-gradient(to left, #000 70%, transparent); }
+[dir="ltr"] .cta-img { -webkit-mask-image: linear-gradient(to right, #000 70%, transparent); mask-image: linear-gradient(to right, #000 70%, transparent); }
+.cta-item, .cta-item:first-of-type { flex: 1; background: none; border-radius: 0; padding: 14px 22px; min-height: 0; justify-content: center; }
+.cta-item + .cta-item { border-inline-start: 1px solid #d5e6dc; margin-block: 16px; }
+.cta-wa { justify-content: center; border-radius: 14px; background: linear-gradient(90deg, var(--accent), var(--dark)); }
+
+@media (max-width: 1200px) {
+  .main-nav { gap: 4px 18px; }
+  .products-section .products-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+}
+@media (max-width: 1024px) {
+  .tb-items { justify-content: center; }
+  .hc-login { display: none; }
+  .logo img { height: 52px; }
+  .header-actions { gap: 14px; }
+  .main-nav { overflow-x: hidden; overflow-y: auto; flex-wrap: nowrap; }
+  .nav-home { align-self: auto; margin-top: 0; border-radius: 0; padding: 14px 18px; }
+  .products-section .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .cta-strip { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .logo img { height: 46px; max-width: 150px; }
+  /* phones: the hero picture is taller and keeps its wording (left part) in view */
+  .hero .slide-pic img { height: 210px; object-fit: cover; object-position: 18% center; }
+  .hero-dots { left: 50%; }
+  .cat-tile { flex-basis: 150px; }
+  .ct-foot { padding: 8px 10px 10px; }
+  .ct-foot strong { font-size: 12px; }
+  .products-section .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .p-price { font-size: 15px; }
+  .cta-info { flex-wrap: wrap; }
+  .cta-img { flex: 0 0 100%; height: 110px; -webkit-mask-image: none; mask-image: none; }
+  .cta-item, .cta-item:first-of-type { padding: 14px; }
+  .cta-item + .cta-item { margin-block: 12px; }
+}
+@media (max-width: 420px) {
+  .cta-item + .cta-item { border-inline-start: 0; border-top: 1px solid #d5e6dc; margin: 0 14px; }
+  .cta-info .cta-item { flex: 0 0 100%; }
+}

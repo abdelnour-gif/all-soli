@@ -1,0 +1,7 @@
+# Live data stays on the server: never overwrite it from the repository
+database/store.db
+database/store.db-*
+database/.setup.lock
+database/.recompressed
+database/couriers-config.php
+uploads/*/
