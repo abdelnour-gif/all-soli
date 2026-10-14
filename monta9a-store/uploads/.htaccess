@@ -1,0 +1,22 @@
+Options -Indexes
+# Never execute scripts inside uploads
+<FilesMatch "\.(php\d?|phtml|phar|pl|py|cgi|sh|html?|svgz?)$">
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
+</FilesMatch>
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+
+# Uploaded images get a new random name on every upload, so the browser can keep them for a year:
+# returning visitors don't download them again (less traffic and less load on the server).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(webp|jpe?g|png|gif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
