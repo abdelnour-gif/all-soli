@@ -79,6 +79,9 @@ function storeUpdates(): array {
         'wa_float_fix'     => fn(PDO $db) => $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('wa_float_on', '1'), ('wa_float_fix', '1')"),
         // MONTA9A homepage exactly like the design (logo, hero, category pictures, bottom band).
         'monta9a_design_1' => fn(PDO $db) => applyMonta9aDesign($db),
+        // One admin account per username: older stores could hold the same account twice, which made
+        // «حفظ بيانات الحساب» answer «اسم المستخدم مستعمل» even when only the e-mail changed.
+        'admins_unique_1'  => fn(PDO $db) => dedupeAdmins($db),
     ];
 }
 
@@ -124,6 +127,26 @@ function setupStore(PDO $db): void {
             return;
         }
     }
+}
+
+/**
+ * Removes duplicate admin rows (same username, any letter case) and prevents new ones.
+ * The kept row is the oldest one — the one the login page, «نسيت كلمة المرور» and reset-password.txt
+ * already use — so nobody is logged out and the password does not change. An e-mail saved only on a
+ * removed duplicate is copied to the kept account.
+ */
+function dedupeAdmins(PDO $db): void {
+    $db->beginTransaction();
+    $cols = array_column($db->query('PRAGMA table_info(admins)')->fetchAll(), 'name');
+    if (in_array('email', $cols, true)) {
+        $db->exec("UPDATE admins SET email = (SELECT d.email FROM admins d WHERE lower(d.username) = lower(admins.username) AND d.id > admins.id AND d.email <> '' ORDER BY d.id LIMIT 1)
+                   WHERE (email IS NULL OR email = '') AND id = (SELECT MIN(k.id) FROM admins k WHERE lower(k.username) = lower(admins.username))
+                     AND EXISTS (SELECT 1 FROM admins d WHERE lower(d.username) = lower(admins.username) AND d.id > admins.id AND d.email <> '')");
+    }
+    $db->exec('DELETE FROM admins WHERE id NOT IN (SELECT MIN(id) FROM admins GROUP BY lower(username))');
+    $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS admins_username_nocase ON admins (username COLLATE NOCASE)');
+    $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('admins_unique_1', '1')");
+    $db->commit();
 }
 
 /**

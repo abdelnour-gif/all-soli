@@ -21,17 +21,20 @@ if (adminPost()) {
         $st = $db->prepare('SELECT * FROM admins WHERE id = ?');
         $st->execute([$_SESSION['admin_id']]);
         $admin = $st->fetch();
+        if (!$admin) { unset($_SESSION['admin_id'], $_SESSION['admin_user']); redirect('login.php'); }
         $newUser = trim((string)($_POST['username'] ?? ''));
         $newEmail = strtolower(trim((string)($_POST['email'] ?? '')));
         $new = cleanNewPassword((string)($_POST['new_password'] ?? ''));
         $confirm = cleanNewPassword((string)($_POST['confirm_password'] ?? ''));
+        // Only a NEW username can be "taken": saving the e-mail or password alone never checks it.
         $taken = $db->prepare('SELECT COUNT(*) FROM admins WHERE lower(username) = lower(?) AND id <> ?');
         $taken->execute([$newUser, $admin['id']]);
+        $isTaken = mb_strtolower($newUser) !== mb_strtolower((string)$admin['username']) && (int)$taken->fetchColumn() > 0;
         if (!adminPasswordMatches((string)($_POST['current_password'] ?? ''), $admin['password'])) {
             flash('كلمة المرور الحالية غير صحيحة — لم يتم حفظ أي تغيير', 'error');
         } elseif (!preg_match('/^[\p{L}\p{N}_.\-@]{3,40}$/u', $newUser)) {
             flash('اسم المستخدم يجب أن يكون من 3 إلى 40 حرفاً (حروف، أرقام، _ . -) وبدون مسافات', 'error');
-        } elseif ($taken->fetchColumn()) {
+        } elseif ($isTaken) {
             flash('اسم المستخدم مستعمل', 'error');
         } elseif ($newEmail !== '' && !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
             flash('البريد الإلكتروني غير صحيح — مثال: name@gmail.com', 'error');
