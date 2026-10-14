@@ -88,8 +88,6 @@ $offerOnly = offerOnly();
     </div>
 
     <div class="header-actions">
-      <a href="track.php" class="hc-link" title="<?= tx('حسابي — تتبع طلباتي', 'Mon compte — suivi de commande') ?>" aria-label="<?= tx('حسابي', 'Mon compte') ?>"><?= icon('user', 21) ?><span class="hide-sm"><?= tx('حسابي', 'Mon compte') ?></span></a>
-      <a href="admin/login.php" class="hc-link hc-login" rel="nofollow"><?= icon('user', 21) ?><span><?= tx('تسجيل الدخول', 'Connexion') ?></span></a>
       <a href="cart.php" class="hc-cart" title="<?= tx('السلة', 'Panier') ?>"><span class="hc-btn"><?= icon('cartsm', 21) ?><span class="badge" id="cartCount"><?= cartCount() ?></span></span></a>
     </div>
 <?php endif; ?>
