@@ -131,3 +131,34 @@ def test_owner_reply_takes_over(chat):
     engine.owner_reply(r.conversation["id"], "مرحبا، أنا صاحب المحل")
     assert db.get_conversation(r.conversation["id"])["status"] == "human"
     assert chat("boutique-leila", "شكرا").text is None
+
+
+def test_mixed_languages_and_arabizi(chat):
+    assert "2800 دج" in chat("boutique-leila", "bch7al jean?").text
+    assert "6500 دج" in chat("boutique-leila", "c combien la veste", user="u2").text
+    assert "وهران" in chat("boutique-leila", "vous êtes où?", user="u3").text
+    assert chat("boutique-leila", "hi", user="u4").text.startswith(("أهلا", "مرحبا"))
+
+
+def test_delivery_to_named_wilaya(chat):
+    assert "نوصلو لـ البويرة" in chat("boutique-leila", "تقدرو تبعثولي للبويرة؟").text
+    assert "ما نوصلوش لـ وهران" in chat("pizzeria-assil", "توصلو لوهران؟").text
+
+
+def test_filler_does_not_alert_owner(chat, notifications):
+    for i, t in enumerate(["ok", "؟", "😂😂"]):
+        r = chat("boutique-leila", t, user=f"f{i}")
+        assert "كيفاش نقدر نعاونك" in r.text or "سقسيني" in r.text
+    assert not notifications
+
+
+def test_waiting_delivery_is_complaint(chat):
+    r = chat("boutique-leila", "راني نستنى في الليفرور من البارح")
+    assert r.conversation["needs_attention"] and "complaint" in r.events
+
+
+def test_quantity_and_size_from_first_message(chat):
+    r = chat("boutique-leila", "نحب نطلب 2 تيشورتات M")
+    assert "(M) × 2" in r.text and "2400 دج" in r.text
+    r = chat("boutique-leila", "ابعثلي الجينز 38", user="u9")
+    assert "(38)" in r.text and "× " not in r.text

@@ -93,7 +93,9 @@ def find_wilaya(text: str) -> tuple[int, str, str] | None:
         for variant in (alias, "ل" + alias, "ف" + alias, "ب" + alias):
             if f" {variant} " in norm:
                 return code, _BY_CODE[code], alias
-        # "الوهران" / "لوهران" مع "ال"
+        # "الوهران" مع "ال"، و"للبويرة" (ل + البويرة)
         if f" ال{alias} " in norm:
             return code, _BY_CODE[code], alias
+        if alias.startswith("ال") and f" لل{alias[2:]} " in norm:
+            return code, _BY_CODE[code], "لل" + alias[2:]
     return None

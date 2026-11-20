@@ -68,16 +68,23 @@ _WORD_QTY = {
 _QTY_RE = re.compile(r"(?<![\d.])(\d{1,2})\s*(?:x|×|حبات|حبة|حبه|قطع|قطعة|pieces|pcs)?\s*(?=\D|$)")
 
 
-def find_quantity(text: str, exclude_numbers: set[str] | None = None) -> int | None:
+def find_quantity(text: str, sizes: str = "") -> int | None:
+    """"زوج"، "x3"، "3 حبات"، ولا رقم صغير وحدو ("2 تيشورتات") إذا ماهوش مقاس."""
     n = normalize(text)
     for w in n.split():
         if w in _WORD_QTY:
             return _WORD_QTY[w]
-    # رقم صغير مكتوب مع كلمة كمية، ولا "x2"
     raw = to_latin_digits(text)
+    ph = find_phone(raw)
+    if ph:
+        raw = raw.replace(ph[1], " ")
     m = re.search(r"(?:x|×)\s*(\d{1,2})\b|\b(\d{1,2})\s*(?:x|×|حبات|حبة|حبه|قطع|قطعة|pcs|pieces)", raw)
     if m:
         return int(m.group(1) or m.group(2))
+    size_values = {normalize(o) for o in size_options(sizes)} if sizes else set()
+    for m in re.finditer(r"(?<![\d.,])(\d{1,2})(?![\d.,]|\s*(?:h|سا|:))", raw):
+        if m.group(1) not in size_values and 1 < int(m.group(1)) <= 20:
+            return int(m.group(1))
     return None
 
 

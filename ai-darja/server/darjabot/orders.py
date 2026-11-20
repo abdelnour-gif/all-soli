@@ -133,10 +133,11 @@ def _apply_fields(shop: dict, products: list[dict], state: dict, text: str) -> b
         existing = next((i for i in state["items"] if i["product_id"] == p["id"]), None)
         if existing is None and (contains_any(normalize(text), _ADD_WORDS) or not state["items"]):
             if p.get("in_stock", True):
-                state["items"].append(_item(p, find_quantity(text), find_size(text, p.get("sizes", ""))))
+                state["items"].append(_item(p, find_quantity(text, p.get("sizes", "")),
+                                            find_size(text, p.get("sizes", ""))))
                 changed = True
         elif existing is not None:
-            q = find_quantity(text)
+            q = find_quantity(text, existing.get("sizes", ""))
             if q and q != existing["qty"]:
                 existing["qty"] = q
                 changed = True
@@ -222,7 +223,8 @@ def start(shop: dict, products: list[dict], text: str, product: dict | None = No
         if not p.get("in_stock", True):
             return OrderStep(state={}, reply=f"للأسف {p['name']} ماكانش حالياً، كي يرجع نخبروك إن شاء الله. "
                                               "تحب حاجة أخرى؟")
-        state["items"].append(_item(p, find_quantity(text), find_size(text, p.get("sizes", ""))))
+        state["items"].append(_item(p, find_quantity(text, p.get("sizes", "")),
+                                            find_size(text, p.get("sizes", ""))))
     elif mode != "booking":
         return OrderStep(state={}, passthrough=True)
     _apply_fields(shop, products, state, text)
@@ -240,8 +242,10 @@ def _next(shop: dict, state: dict, opening: bool = False) -> OrderStep:
         intro = ""
         if opening:
             it = state["items"][0]
-            intro = f"مرحبا بيك! {it['name']} بـ {money(it['price'])}. " if _mode(shop) != "booking" else \
-                f"مرحبا! {it['name']} ({money(it['price'])}). "
+            size = f" ({it['size']})" if it.get("size") else ""
+            qty = f" × {it['qty']}" if it["qty"] > 1 else ""
+            intro = f"مرحبا بيك! {it['name']}{size}{qty} بـ {money(it['price'] * it['qty'])}. " \
+                if _mode(shop) != "booking" else f"مرحبا! {it['name']} ({money(it['price'])}). "
         return OrderStep(state=state, reply=intro + _ask(shop, state, missing))
     state["stage"] = "confirm"
     return OrderStep(state=state, reply=summary(shop, state))

@@ -11,6 +11,7 @@ import random
 from dataclasses import dataclass, field
 
 from .extract import match_products
+from .wilayas import find_wilaya
 from .normalize import contains_any, norm_list, normalize, content_tokens
 from .prompt import fmt_phone, money
 
@@ -29,9 +30,11 @@ KW = {
                         "مسكّر", "أوقات", "اوقات", "اوقات العمل", "تخدمو", "horaire", "ouvert", "fermé", "ferme",
                         "غدوة", "الجمعة", "السبت", "الليل"]),
     "location": norm_list(["وين", "عنوان", "العنوان", "لوكاسيون", "localisation", "adresse", "بلاصة", "بلاصه",
-                           "الخريطة", "maps", "المحل وين", "كيفاش نوصل", "nlqakom", "win", "location", "gps"]),
+                           "الخريطة", "maps", "المحل وين", "كيفاش نوصل", "nlqakom", "win", "location", "gps", "où", "ou etes",
+                           "vous etes ou", "rakom win", "وين جا", "وين تقعدو", "وين كاين المحل"]),
     "payment": norm_list(["نخلص", "خلاص", "الخلاص", "دفع", "الدفع", "بريدي", "baridimob", "ccp", "carte", "بطاقة",
-                          "بطاقه", "تقسيط", "paiement", "payer", "cib", "edahabia", "الذهبية", "عند الاستلام"]),
+                          "بطاقه", "تقسيط", "بالتقسيط", "paiement", "payer", "cib", "edahabia", "الذهبية", "عند الاستلام",
+                          "كريدي", "credit", "crédit", "facilité", "بالكريدي", "versement"]),
     "returns": norm_list(["نبدل", "تبديل", "نرجع", "ترجيع", "نرجعها", "نرجعو", "ضمان", "garantie", "échange",
                           "echange", "retour", "rembourse", "تبدلولي"]),
     "order": norm_list(["نطلب", "نكوموندي", "كوموند", "commande", "commander", "نشري", "حاب ناخذ", "نحب ناخذ",
@@ -40,7 +43,8 @@ KW = {
                         "طلبية", "order", "ندي", "بغيت", "نبغي", "حبيت ناخذ", "حبيت نطلب", "نحب نحجز", "je veux",
                         "réservation", "reservation"]),
     "greeting": norm_list(["سلام", "السلام", "صباح الخير", "مساء الخير", "عسلامة", "عسلامه", "مرحبا", "اهلا",
-                           "bonjour", "salam", "slm", "bonsoir", "hello", "salut", "صباحو", "slt"]),
+                           "bonjour", "salam", "slm", "bonsoir", "hello", "salut", "صباحو", "slt", "hi", "hey", "cc",
+                           "coucou", "wesh", "saha", "صحة", "السلام عليكم ورحمة الله"]),
     "thanks": norm_list(["شكرا", "يعطيك الصحة", "يعطيك الصحه", "صحيت", "بارك الله", "merci", "ربي يحفظك",
                          "ربي يخليك", "thanks", "mrc", "سحيت", "تبارك الله", "الله يبارك"]),
     "human": norm_list(["نهدر مع", "بشري", "مسؤول", "المسؤول", "صاحب المحل", "شخص حقيقي", "عبد حقيقي", "humain",
@@ -49,10 +53,15 @@ KW = {
     "complaint": norm_list(["ما وصلتش", "ماوصلتش", "ما وصلنيش", "ماوصلنيش", "مكسور", "مكسورة", "مقلق", "تعطل",
                             "تعطلت", "ماشي كيما", "غالطة", "غلطتو", "مشكل", "مشكلة", "شكوى", "réclamation",
                             "reclamation", "arnaque", "نصب", "خايبة", "ما ردش", "حد ما رد", "ما جاتش", "ماجاتش",
-                            "مقطوع", "مخدوش", "probleme", "problème"]),
-    "catalog": norm_list(["واش عندكم", "واش كاين", "واش تبيعو", "السلع", "السلعة", "المنيو", "menu", "قائمة",
-                          "الأسعار", "الاسعار", "catalogue", "منتجات", "المنتجات", "الخدمات", "واش تديرو",
-                          "les prix"]),
+                            "مقطوع", "مخدوش", "probleme", "problème", "نستنى", "طولت", "retard", "ما جاش", "ماجاش",
+                            "مازال ما وصل", "مازال ماوصل", "ما وصلش", "ماوصلش", "وين راهي الطلبية",
+                            "وين راهي الكوموند", "تأخرت", "تاخرت"]),
+    "catalog": norm_list(["واش عندكم", "واش كاين", "واش تبيعو", "نشوف السلع", "كل السلع", "السلع تاعكم",
+                          "السلعة تاعكم", "واش من سلعة", "المنيو", "menu", "قائمة", "القائمة", "الأسعار", "الاسعار",
+                          "catalogue", "المنتجات تاعكم", "الخدمات تاعكم", "واش تديرو", "les prix", "واش من خدمات",
+                          "les articles", "photos", "تصاور", "صور"]),
+    "smalltalk": norm_list(["واش راك", "كيراك", "كي راك", "لاباس", "labas", "cv", "ça va", "ca va", "rak mlih",
+                            "كيداير", "واش راكي", "كيراكي"]),
 }
 
 INFO_INTENTS = ("sizes", "delivery", "payment", "returns", "hours", "location")
@@ -77,6 +86,16 @@ def detect(text: str, products: list[dict]) -> tuple[set[str], list[dict]]:
     if found & set(INFO_INTENTS) and not matches:
         found.discard("stock")
     return found, matches
+
+
+def _is_filler(text: str) -> bool:
+    """رسالة بلا محتوى: "ok"، "؟"، ايموجي، "اه"..."""
+    toks = [t for t in normalize(text).split() if t]
+    if not toks:
+        return True
+    fillers = set(norm_list(["ok", "okay", "oki", "dac", "d'accord", "اه", "ايه", "واه", "مم", "hmm", "اوكي",
+                             "باهي", "مليح", "نعم", "yes", "oui", "wah", "تمام", "top"]))
+    return all(t in fillers for t in toks)
 
 
 def faq_match(text: str, faqs: list[dict]) -> dict | None:
@@ -129,11 +148,19 @@ def _sizes_line(p: dict) -> str:
     return f"{p['name']} ما عندوش مقاسات، حجم واحد."
 
 
-def _delivery_line(info: dict, shop: dict) -> str:
+def _delivery_line(info: dict, shop: dict, text: str = "") -> str:
     if not info.get("delivery_available"):
         where = "، ".join(x for x in (info.get("address"), info.get("city")) if x)
         return "للأسف ما عندناش التوصيل" + (f"، لازم تجي للمحل فـ {where}." if where else ".")
     line = "إيه كاين التوصيل"
+    w = find_wilaya(text) if text else None
+    areas = info.get("delivery_areas") or ""
+    if w:
+        everywhere = any(x in areas for x in ("58", "كل", "48", "الولايات", "toutes"))
+        if everywhere or normalize(w[1]) in normalize(areas) or normalize(w[2]) in normalize(areas):
+            line = f"إيه نوصلو لـ {w[1]}"
+        else:
+            return f"للأسف ما نوصلوش لـ {w[1]}، نوصلو غير لـ {areas}."
     if info.get("delivery_price"):
         line += f"، السعر {info['delivery_price']}"
     if info.get("delivery_time"):
@@ -255,7 +282,7 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
         return res  # مدير الطلبيات هو اللي يكمل
 
     parts: list[str] = []
-    for intent, fn in (("delivery", lambda: _delivery_line(info, shop)), ("payment", lambda: _payment_line(info)),
+    for intent, fn in (("delivery", lambda: _delivery_line(info, shop, text)), ("payment", lambda: _payment_line(info)),
                        ("returns", lambda: _returns_line(info)), ("hours", lambda: _hours_line(info)),
                        ("location", lambda: _location_line(info))):
         if intent in intents:
@@ -304,6 +331,13 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
             parts.append(faq["a"])
         elif "greeting" in intents:
             res.reply = greeting_reply(text, shop, r)
+            return res
+        elif "smalltalk" in intents:
+            res.reply = _pick(r, ["الحمد لله، ربي يسلمك! كيفاش نقدر نعاونك؟", "لاباس الحمد لله 😊 واش تحتاج؟"])
+            return res
+        elif _is_filler(text):
+            res.reply = _pick(r, ["😊 كيفاش نقدر نعاونك؟ تقدر تسقسيني على السلع، الأسعار، ولا التوصيل.",
+                                  "مرحبا! سقسيني على واش تحب: السلع، الأسعار، التوصيل، ولا اطلب مباشرة 👌"])
             return res
         elif "thanks" in intents:
             res.reply = _pick(r, ["الله يسلمك، مرحبا بيك في أي وقت!", "بلا مزية، نحن في الخدمة.",
