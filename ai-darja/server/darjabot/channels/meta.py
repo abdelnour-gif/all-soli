@@ -7,6 +7,8 @@ import logging
 
 import httpx
 
+from ..media import FILE, VOICE
+
 log = logging.getLogger("darjabot.meta")
 GRAPH = "https://graph.facebook.com/v21.0"
 
@@ -68,9 +70,9 @@ def parse_whatsapp(payload: dict) -> list[dict]:
                     inter = m.get("interactive") or {}
                     text = (inter.get("button_reply") or inter.get("list_reply") or {}).get("title", "")
                 elif t in ("audio", "voice"):
-                    text = "[رسالة صوتية]"
+                    text = VOICE
                 elif t in ("image", "video", "document", "sticker"):
-                    text = (m.get(t) or {}).get("caption") or "[صورة/ملف]"
+                    text = (m.get(t) or {}).get("caption") or FILE
                 else:
                     continue
                 if text:
@@ -91,7 +93,7 @@ def parse_messenger(payload: dict) -> list[dict]:
                 continue
             text = msg.get("text")
             if not text and msg.get("attachments"):
-                text = "[صورة/ملف]"
+                text = FILE
             if not text:
                 continue
             out.append({"page_id": page_id, "sender": str((ev.get("sender") or {}).get("id", "")), "text": text,

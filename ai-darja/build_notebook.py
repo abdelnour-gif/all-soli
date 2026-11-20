@@ -98,32 +98,37 @@ md("""
 النموذج يتعلم من ردود المساعد فقط (ماشي من أسئلة الزبون).
 """)
 code("""
+import inspect
 from trl import SFTTrainer, SFTConfig
 from unsloth.chat_templates import train_on_responses_only
 
 FastLanguageModel.for_training(model)
 
-trainer = SFTTrainer(
-    model=model,
-    tokenizer=tokenizer,
-    train_dataset=train_ds,
-    args=SFTConfig(
-        dataset_text_field="text",
-        max_seq_length=MAX_LEN,
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        num_train_epochs=1,
-        learning_rate=2e-4,
-        warmup_steps=10,
-        logging_steps=10,
-        optim="adamw_8bit",
-        weight_decay=0.01,
-        lr_scheduler_type="linear",
-        seed=42,
-        output_dir="outputs",
-        report_to="none",
-    ),
+# أسماء الإعدادات تتبدل بين إصدارات مكتبة TRL، نختارو اللي كاين
+cfg = dict(
+    dataset_text_field="text",
+    max_seq_length=MAX_LEN, max_length=MAX_LEN,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=4,
+    num_train_epochs=1,
+    learning_rate=2e-4,
+    warmup_steps=10,
+    logging_steps=10,
+    optim="adamw_8bit",
+    weight_decay=0.01,
+    lr_scheduler_type="linear",
+    seed=42,
+    output_dir="outputs",
+    report_to="none",
 )
+accepted = inspect.signature(SFTConfig.__init__).parameters
+args = SFTConfig(**{k: v for k, v in cfg.items() if k in accepted})
+
+try:
+    trainer = SFTTrainer(model=model, processing_class=tokenizer, train_dataset=train_ds, args=args)
+except TypeError:
+    trainer = SFTTrainer(model=model, tokenizer=tokenizer, train_dataset=train_ds, args=args)
+
 trainer = train_on_responses_only(
     trainer,
     instruction_part="<|im_start|>user\\n",
@@ -182,9 +187,9 @@ model.save_pretrained_gguf("darja_gguf", tokenizer, quantization_method="q4_k_m"
 """)
 code("""
 # تحميل الملف لحاسوبك (أو انسخو لـ Google Drive إذا كان كبير)
-import glob
+import glob, os
 from google.colab import files
-gguf = sorted(glob.glob("darja_gguf/*.gguf") + glob.glob("*.gguf"))
+gguf = sorted(glob.glob("**/*.gguf", recursive=True), key=os.path.getsize)
 print(gguf)
 files.download(gguf[-1])
 """)

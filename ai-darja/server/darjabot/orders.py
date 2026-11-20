@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from .extract import (best_product, find_quantity, find_size, is_cancel, is_no, is_yes, looks_like_name,
                       match_products, parse_customer_fields, size_options)
 from .normalize import contains_any, norm_list, normalize
+from .media import FILE, VOICE
 from .prompt import money
 from .rules import KW
 
@@ -253,6 +254,10 @@ def _next(shop: dict, state: dict, opening: bool = False) -> OrderStep:
 
 def handle(shop: dict, products: list[dict], state: dict, text: str) -> OrderStep:
     """رسالة جديدة وطلبية مفتوحة."""
+    if text.strip() in (VOICE, FILE):
+        what = "نأكدو؟ جاوب بـ إيه ولا لا." if state.get("stage") == "confirm" else \
+            _ask(shop, state, required_fields(shop, state))
+        return OrderStep(state=state, passthrough=True, reminder=what)
     if is_cancel(text):
         return OrderStep(state={}, cancelled=True,
                          reply="ماكاش مشكل، لغينا الطلبية. إذا حبيت حاجة أخرى راني هنا 😊")

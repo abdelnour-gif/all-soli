@@ -11,6 +11,7 @@ import random
 from dataclasses import dataclass, field
 
 from .extract import match_products
+from .media import FILE, VOICE
 from .wilayas import find_wilaya
 from .normalize import contains_any, norm_list, normalize, content_tokens
 from .prompt import fmt_phone, money
@@ -259,6 +260,15 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
     product = matches[0] if len(matches) == 1 else None
     res = RuleResult(reply="", intents=sorted(intents), product=product)
 
+    if text.strip() == VOICE:
+        res.reply = "سمحلي، ما نقدرش نسمع الرسائل الصوتية 🙏 اكتبلي سؤالك ونجاوبك دغيا ✍️"
+        return res
+    if text.strip() == FILE:
+        res.complaint = False
+        res.unknown = True
+        res.reply = ("وصلتني الصورة/الملف ✓ واحد من الفريق يشوفها ويرجعلك. وإذا عندك سؤال على سلعة، "
+                     "اكتبلي اسمها ونجاوبك دغيا.")
+        return res
     if "human" in intents:
         res.needs_human = True
         res.reply = "مفهوم، راني نحوّلك لواحد من الفريق، يجاوبك في أقرب وقت إن شاء الله 🙏"

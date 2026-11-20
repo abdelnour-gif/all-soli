@@ -5,6 +5,8 @@ import logging
 
 import httpx
 
+from ..media import FILE, VOICE
+
 log = logging.getLogger("darjabot.telegram")
 API = "https://api.telegram.org"
 
@@ -61,9 +63,9 @@ def parse_update(update: dict) -> tuple[str, str, str] | None:
     text = msg.get("text") or msg.get("caption")
     if not text:
         if msg.get("voice") or msg.get("audio"):
-            text = "[رسالة صوتية]"
+            text = VOICE
         elif msg.get("photo") or msg.get("sticker") or msg.get("document"):
-            text = "[صورة/ملف]"
+            text = FILE
         else:
             return None
     frm = msg.get("from") or {}

@@ -175,3 +175,20 @@ def test_human_mode_times_out_from_last_team_reply(chat, monkeypatch):
     r = chat("boutique-leila", "بشحال السروال؟")                # حتى واحد ما جاوب: البوت يرجع
     assert r.text and "2800 دج" in r.text
     assert db.get_conversation(conv_id)["status"] == "bot"
+
+
+def test_voice_and_photo_messages(chat, notifications):
+    from darjabot.media import FILE, VOICE
+    r = chat("boutique-leila", VOICE)
+    assert "ما نقدرش نسمع" in r.text and not notifications
+    r = chat("boutique-leila", FILE, user="u2")
+    assert "وصلتني الصورة" in r.text and notifications and r.conversation["needs_attention"]
+
+
+def test_voice_during_order_is_not_a_name(chat):
+    from darjabot.media import VOICE
+    chat("boutique-leila", "حاب نطلب تيشورت M")
+    r = chat("boutique-leila", VOICE)
+    assert "ما نقدرش نسمع" in r.text and "الاسم" in r.text
+    state = db.list_conversations(None)[0]["order_state"]
+    assert state["active"] and not state.get("name")
