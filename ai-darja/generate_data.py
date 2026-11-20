@@ -33,7 +33,7 @@ SHOPS = [
             {"name": "روب صيفية", "price": 3200, "sizes": "S, M, L", "stock": False},
             {"name": "تيشورت قطن", "price": 1200, "sizes": "S حتى XXL", "stock": True},
         ],
-        "phone": "0555 12 34 56",
+        "phone": "0555123456",
     },
     {
         "name": "بيتزيريا الأصيل", "type": "food", "city": "الجزائر العاصمة",
@@ -47,7 +47,7 @@ SHOPS = [
             {"name": "طاكوس ميكس", "price": 650, "sizes": "M و L و XL", "stock": True},
             {"name": "شاورمة دجاج", "price": 450, "sizes": "حجم واحد", "stock": True},
         ],
-        "phone": "0770 98 76 54",
+        "phone": "0770987654",
     },
     {
         "name": "فون ستور سطيف", "type": "phones", "city": "سطيف",
@@ -61,7 +61,7 @@ SHOPS = [
             {"name": "آيفون 13 مستعمل", "price": 85000, "sizes": "128 جيغا", "stock": False},
             {"name": "شارجور سريع 33W", "price": 1800, "sizes": "Type-C", "stock": True},
         ],
-        "phone": "0661 22 33 44",
+        "phone": "0661223344",
     },
     {
         "name": "كوسمتيك نور", "type": "cosmetics", "city": "قسنطينة",
@@ -75,7 +75,7 @@ SHOPS = [
             {"name": "بارفان نسائي", "price": 4500, "sizes": "100 مل", "stock": False},
             {"name": "واقي شمس", "price": 1900, "sizes": "50 مل", "stock": True},
         ],
-        "phone": "0698 45 67 89",
+        "phone": "0698456789",
     },
     {
         "name": "عيادة الشفاء لطب الأسنان", "type": "clinic", "city": "البليدة",
@@ -89,7 +89,7 @@ SHOPS = [
             {"name": "حشوة", "price": 4000, "sizes": "", "stock": True},
             {"name": "تبييض الأسنان", "price": 15000, "sizes": "", "stock": True},
         ],
-        "phone": "025 41 22 33",
+        "phone": "025412233",
     },
     {
         "name": "حلويات الدار", "type": "sweets", "city": "تيزي وزو",
@@ -103,7 +103,7 @@ SHOPS = [
             {"name": "طورطة عيد ميلاد", "price": 4000, "sizes": "8 و12 و20 شخص", "stock": True},
             {"name": "قريوش (الكيلو)", "price": 1600, "sizes": "", "stock": False},
         ],
-        "phone": "0550 66 77 88",
+        "phone": "0550667788",
     },
 ]
 
@@ -116,7 +116,8 @@ CLOSERS = ["", "", " كاش ما حبيت حاجة أخرى؟", " مرحبا ب�
 
 
 def money(n: int) -> str:
-    return f"{n:,}".replace(",", " ") + " دج"
+    # بلا فواصل: "2 800" يتقلب في الكتابة من اليمين لليسار
+    return f"{n} دج"
 
 
 def shop_card(s: dict) -> str:

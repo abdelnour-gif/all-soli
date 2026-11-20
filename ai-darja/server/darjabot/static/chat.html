@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>{{SHOP_NAME}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--card:#fff;--text:#1d2430;--muted:#6b7380;--line:#e3e6eb;--brand:#0f7b5f;--me:#0f7b5f;--me-text:#fff;--bot:#fff;--owner:#e9f1fb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--card:#1b2129;--text:#e7eaee;--muted:#9aa3ae;--line:#2b333d;--brand:#3ccf9d;--me:#1f8f6e;--me-text:#fff;--bot:#1b2129;--owner:#18293d}}
+:root[data-theme="dark"]{--bg:#0f1318;--card:#1b2129;--text:#e7eaee;--muted:#9aa3ae;--line:#2b333d;--brand:#3ccf9d;--me:#1f8f6e;--me-text:#fff;--bot:#1b2129;--owner:#18293d}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:Cairo,system-ui,sans-serif;font-size:15px;display:flex;flex-direction:column}
+header{background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+header .av{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-weight:700}
+header .t b{display:block;font-size:16px}
+header .t span{font-size:12px;opacity:.85}
+#log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;max-width:760px;width:100%;margin:0 auto}
+.m{max-width:82%;padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;line-height:1.6;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.m.user{align-self:flex-start;background:var(--me);color:var(--me-text);border-bottom-right-radius:4px}
+.m.bot{align-self:flex-end;background:var(--bot);border-bottom-left-radius:4px}
+.m.owner{align-self:flex-end;background:var(--owner);border-bottom-left-radius:4px}
+.m.owner::before{content:"👤 فريق المحل";display:block;font-size:11px;color:var(--muted)}
+.typing{align-self:flex-end;color:var(--muted);font-size:13px;padding:4px 10px}
+form{display:flex;gap:8px;padding:10px 12px;background:var(--card);border-top:1px solid var(--line);max-width:760px;width:100%;margin:0 auto}
+input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:22px;background:var(--bg);color:var(--text);font:inherit}
+button{border:0;border-radius:22px;padding:0 18px;background:var(--brand);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 8px;max-width:760px;width:100%;margin:0 auto}
+.quick button{background:var(--card);color:var(--text);border:1px solid var(--line);padding:5px 12px;font-weight:600;font-size:13px}
+.foot{text-align:center;font-size:11px;color:var(--muted);padding:4px}
+</style>
+</head>
+<body>
+<header><div class="av" id="av"></div><div class="t"><b id="sn">{{SHOP_NAME}}</b><span id="st">يجاوب في ثواني</span></div></header>
+<div id="log" aria-live="polite"></div>
+<div class="quick" id="quick"></div>
+<form id="f"><input id="i" placeholder="اكتب رسالتك..." autocomplete="off" maxlength="2000" aria-label="رسالة"><button id="b" aria-label="بعث">بعث</button></form>
+<div class="foot">Darja Bot 🇩🇿</div>
+<script>
+"use strict";
+(function(){
+  const SLUG = "{{SHOP_SLUG}}";
+  const KEY = "djb_visitor_" + SLUG;
+  const log = document.getElementById("log"), form = document.getElementById("f"), input = document.getElementById("i"), btn = document.getElementById("b");
+  let visitor = null, lastId = 0, busy = false;
+  try { visitor = localStorage.getItem(KEY); } catch (e) {}
+  try { const p = new URLSearchParams(location.search); if (p.get("theme")) document.documentElement.dataset.theme = p.get("theme"); } catch (e) {}
+  document.getElementById("av").textContent = (document.getElementById("sn").textContent.trim()[0] || "🛍");
+
+  function add(role, text) { const d = document.createElement("div"); d.className = "m " + role; d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; }
+  function typing(on) { let t = document.getElementById("typing"); if (on && !t) { t = document.createElement("div"); t.id = "typing"; t.className = "typing"; t.textContent = "يكتب..."; log.appendChild(t); log.scrollTop = log.scrollHeight; } else if (!on && t) t.remove(); }
+
+  async function load() {
+    try {
+      const info = await (await fetch(`/api/public/${SLUG}/info`)).json();
+      if (visitor) {
+        const r = await (await fetch(`/api/public/${SLUG}/messages?visitor_id=${encodeURIComponent(visitor)}`)).json();
+        if (r.messages && r.messages.length) { r.messages.forEach(m => { add(m.role, m.text); lastId = Math.max(lastId, m.id); }); return; }
+      }
+      add("bot", info.welcome);
+      const q = document.getElementById("quick");
+      ["واش عندكم؟", "شحال التوصيل؟", "وين راكم؟", "حاب نطلب"].forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.onclick = () => { q.remove(); send(t); }; q.appendChild(b); });
+    } catch (e) { add("bot", "مرحبا بيك! كيفاش نقدر نعاونك؟"); }
+  }
+
+  async function send(text) {
+    if (!text || busy) return;
+    busy = true; btn.disabled = true; add("user", text); input.value = ""; typing(true);
+    try {
+      const res = await fetch(`/api/public/${SLUG}/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, visitor_id: visitor }) });
+      const r = await res.json(); typing(false);
+      if (!res.ok) { add("bot", typeof r.detail === "string" ? r.detail : "وقع مشكل، عاود جرب."); return; }
+      if (r.visitor_id && r.visitor_id !== visitor) { visitor = r.visitor_id; try { localStorage.setItem(KEY, visitor); } catch (e) {} }
+      if (r.reply) add("bot", r.reply);
+      else if (r.human) add("bot", "وصلت رسالتك ✓ واحد من الفريق يجاوبك هنا في أقرب وقت.");
+      lastId = Math.max(lastId, r.last_id || 0);
+    } catch (e) { typing(false); add("bot", "ما قدرتش نوصل للسيرفر، تأكد من الإنترنت وعاود جرب."); }
+    finally { busy = false; btn.disabled = false; input.focus(); }
+  }
+
+  async function poll() {
+    if (!visitor || busy || document.hidden) return;
+    try {
+      const r = await (await fetch(`/api/public/${SLUG}/messages?visitor_id=${encodeURIComponent(visitor)}&after=${lastId}`)).json();
+      (r.messages || []).forEach(m => { if (m.role === "owner") add("owner", m.text); lastId = Math.max(lastId, m.id); });
+    } catch (e) {}
+  }
+
+  form.addEventListener("submit", e => { e.preventDefault(); send(input.value.trim()); });
+  load(); setInterval(poll, 5000);
+})();
+</script>
+</body>
+</html>

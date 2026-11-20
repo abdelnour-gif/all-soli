@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Darja Bot — لوحة التحكم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6f8;--card:#fff;--text:#1d2430;--muted:#6b7380;--line:#e3e6eb;--brand:#0f7b5f;--brand-2:#e8f5f0;
+  --warn:#b45309;--warn-bg:#fff4e5;--danger:#c0392b;--danger-bg:#fdecea;--info:#1d5fa8;--info-bg:#e9f1fb;
+  --bubble-user:#e9edf2;--bubble-bot:#e8f5f0;--bubble-owner:#e9f1fb;--shadow:0 1px 3px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161c;--card:#1b2129;--text:#e7eaee;--muted:#9aa3ae;--line:#2b333d;--brand:#3ccf9d;--brand-2:#173a30;
+  --warn:#f0b35a;--warn-bg:#3a2c16;--danger:#ff7b6b;--danger-bg:#3d1e1b;--info:#7db3f2;--info-bg:#18293d;
+  --bubble-user:#252d37;--bubble-bot:#173a30;--bubble-owner:#18293d;--shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#12161c;--card:#1b2129;--text:#e7eaee;--muted:#9aa3ae;--line:#2b333d;--brand:#3ccf9d;--brand-2:#173a30;
+  --warn:#f0b35a;--warn-bg:#3a2c16;--danger:#ff7b6b;--danger-bg:#3d1e1b;--info:#7db3f2;--info-bg:#18293d;
+  --bubble-user:#252d37;--bubble-bot:#173a30;--bubble-owner:#18293d;--shadow:none;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Cairo,system-ui,sans-serif;font-size:15px;line-height:1.6}
+a{color:var(--brand)}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+textarea{min-height:80px;resize:vertical}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.btn{border:0;border-radius:9px;padding:9px 16px;background:var(--brand);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:var(--danger)}
+.btn.small{padding:5px 11px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.logo{font-weight:700;font-size:18px;color:var(--brand)}
+header .grow{flex:1}
+header select{width:auto;min-width:180px}
+nav{display:flex;gap:4px;overflow-x:auto;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+nav button{border:0;background:transparent;padding:7px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+nav button.active{background:var(--brand-2);color:var(--brand)}
+nav .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--danger);color:#fff;font-size:12px;margin-inline-start:4px}
+main{max-width:1150px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:17px}
+.grid{display:grid;gap:12px}
+.stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat .v{font-size:24px;font-weight:700}
+.stat .l{color:var(--muted);font-size:13px}
+.two{grid-template-columns:1fr 1fr}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--muted);font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;font-weight:600;background:var(--line)}
+.pill.ok{background:var(--brand-2);color:var(--brand)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--danger-bg);color:var(--danger)}.pill.info{background:var(--info-bg);color:var(--info)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:start;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600}
+.table-wrap{overflow-x:auto}
+.list-item{padding:10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px}
+.list-item:hover,.list-item.active{background:var(--brand-2)}
+.convs{display:grid;grid-template-columns:330px 1fr;gap:16px}
+@media (max-width:860px){.convs{grid-template-columns:1fr}.convs.open .conv-list{display:none}.convs:not(.open) .conv-view{display:none}}
+.chat{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding:4px}
+.msg{max-width:85%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{background:var(--bubble-user);align-self:flex-start}
+.msg.assistant{background:var(--bubble-bot);align-self:flex-end}
+.msg.owner{background:var(--bubble-owner);align-self:flex-end}
+.msg .meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:8px;align-items:center}
+.msg .fix{cursor:pointer;color:var(--info)}
+.msg .corrected{border-top:1px dashed var(--line);margin-top:6px;padding-top:4px;color:var(--info)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:10px;z-index:50;opacity:0;transition:.25s;pointer-events:none}
+.toast.show{opacity:1}
+.login{max-width:380px;margin:12vh auto}
+code,.code{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px 6px;word-break:break-all}
+pre.code{padding:10px;white-space:pre-wrap;display:block}
+.hidden{display:none!important}
+.empty{color:var(--muted);text-align:center;padding:24px}
+.faq-row{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px}
+@media (max-width:600px){.faq-row{grid-template-columns:1fr}}
+.check{display:flex;gap:8px;align-items:center;margin-top:10px}
+.check input{width:auto}
+details summary{cursor:pointer;font-weight:600;margin:6px 0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const S = {me:null, shops:[], shop:"", tab:"dash", conv:null, timer:null, testSession:Math.random().toString(36).slice(2,10)};
+const MODES = {delivery:"بيع مع التوصيل", pickup:"بيع في المحل", booking:"حجز مواعيد (عيادة، صالون...)"};
+const STATUS = {new:["جديدة","warn"], confirmed:["مأكدة","info"], shipped:["تبعثت","info"], delivered:["وصلت","ok"], cancelled:["ملغية","bad"]};
+const CH = {web:"🌐 الموقع", telegram:"✈️ تيليغرام", whatsapp:"🟢 واتساب", messenger:"💬 ماسنجر", instagram:"📸 إنستغرام", test:"🧪 تجربة"};
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// فاصل الآلاف لازم يكون no-break space (ماشي فراغ عادي) باش الأرقام ما تتقلبش في الكتابة من اليمين
+const money = n => Number(n||0).toLocaleString("fr-DZ").replace(/[\s\u202f\u00a0]/g,"\u202f") + " دج";
+const who = c => c.customer_name || (c.channel==="web" ? "زائر #"+c.id : c.channel==="test" ? "تجربة #"+c.id : c.external_id);
+const when = t => new Date(t*1000).toLocaleString("ar-DZ",{dateStyle:"short",timeStyle:"short"});
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2600);}
+function ownerKey(){try{return localStorage.getItem("djb_owner_key")||""}catch(e){return ""}}
+async function api(path, opts={}){
+  const headers = {"Content-Type":"application/json"};
+  const k = ownerKey(); if(k) headers["X-Owner-Key"] = k;
+  const res = await fetch(path, {credentials:"same-origin", ...opts, headers:{...headers, ...(opts.headers||{})},
+    body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body});
+  if(res.status===401){ S.me=null; render(); throw new Error("لازم تدخل"); }
+  const ct = res.headers.get("content-type")||"";
+  const data = ct.includes("json") ? await res.json() : await res.text();
+  if(!res.ok){ const d = data && data.detail; const m = typeof d==="string" ? d : (Array.isArray(d) ? d.map(x=>x.msg).join("، ") : "خطأ"); toast(m); throw new Error(m); }
+  return data;
+}
+const shopQ = () => S.shop ? `?shop_id=${S.shop}` : "";
+const curShop = () => S.shops.find(s => String(s.id)===String(S.shop));
+
+// ---------------- boot ----------------
+async function boot(){
+  const url = new URL(location.href);
+  const key = url.searchParams.get("key");
+  if(key){ try{localStorage.setItem("djb_owner_key", key)}catch(e){} url.searchParams.delete("key"); history.replaceState(null,"",url.pathname+url.hash); }
+  try{ S.me = await api("/api/auth/me"); }catch(e){ S.me = null; }
+  if(S.me){ await loadShops(); if(S.me.role==="owner") S.shop = String(S.shops[0]?.id||""); }
+  const h = location.hash.match(/^#conv-(\d+)/); if(h){ S.tab="convs"; S.openConv=+h[1]; }
+  render();
+}
+async function loadShops(){ S.shops = await api("/api/shops"); }
+
+function render(){
+  clearInterval(S.timer);
+  const app = $("#app");
+  if(!S.me){ app.innerHTML = loginView(); $("#login-form").onsubmit = doLogin; return; }
+  const tabs = [["dash","الرئيسية"],["convs","المحادثات"],["orders","الطلبيات"],["shop","المحل والسلع"],["channels","القنوات"],["test","جرّب البوت"],["train","التدريب"]];
+  app.innerHTML = `
+  <header>
+    <span class="logo">🇩🇿 Darja Bot</span>
+    ${S.me.role==="admin" ? `<select id="shop-sel"><option value="">كل المحلات</option>${S.shops.map(s=>`<option value="${s.id}" ${String(s.id)===String(S.shop)?"selected":""}>${esc(s.name)}</option>`).join("")}</select>` : `<b>${esc(S.shops[0]?.name||"")}</b>`}
+    <span class="grow"></span>
+    <button class="btn secondary small" id="theme">🌓</button>
+    <button class="btn secondary small" id="logout">خروج</button>
+  </header>
+  <nav>${tabs.map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?"active":""}">${l}${k==="convs"?'<span class="badge hidden" id="att-badge"></span>':""}</button>`).join("")}</nav>
+  <main id="view"></main>`;
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => { S.tab=b.dataset.tab; S.conv=null; render(); });
+  const sel = $("#shop-sel"); if(sel) sel.onchange = () => { S.shop = sel.value; S.conv=null; render(); };
+  $("#logout").onclick = async () => { try{localStorage.removeItem("djb_owner_key")}catch(e){} await fetch("/api/auth/logout",{method:"POST"}); S.me=null; render(); };
+  $("#theme").onclick = () => { const r=document.documentElement; const cur=r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"); r.dataset.theme = cur==="dark"?"light":"dark"; try{localStorage.setItem("djb_theme", r.dataset.theme)}catch(e){} };
+  ({dash:viewDash, convs:viewConvs, orders:viewOrders, shop:viewShop, channels:viewChannels, test:viewTest, train:viewTrain})[S.tab]();
+  refreshBadge();
+}
+async function refreshBadge(){
+  try{ const st = await api("/api/stats"+shopQ()); const b=$("#att-badge"); if(b){ b.textContent=st.attention; b.classList.toggle("hidden", !st.attention); } }catch(e){}
+}
+
+function loginView(){
+  return `<div class="login card"><h2>🇩🇿 Darja Bot — الدخول</h2>
+  <form id="login-form"><label>كلمة السر تاع المدير</label><input type="password" id="pw" autocomplete="current-password" required>
+  <div style="margin-top:14px"><button class="btn" style="width:100%">دخول</button></div></form>
+  <p class="muted">كلمة السر في ملف <code>data/admin_password.txt</code> ولا في <code>ADMIN_PASSWORD</code>.<br>صاحب المحل يدخل بالرابط الخاص اللي يعطيهولو المدير.</p></div>`;
+}
+async function doLogin(e){ e.preventDefault(); try{ await api("/api/auth/login",{method:"POST", body:{password:$("#pw").value}}); await boot(); }catch(err){} }
+
+// ---------------- dashboard ----------------
+async function viewDash(){
+  const v=$("#view"); v.innerHTML = `<div class="empty">...</div>`;
+  const [st, sys, att, orders] = await Promise.all([api("/api/stats"+shopQ()), api("/api/system"), api("/api/conversations"+(shopQ()?shopQ()+"&":"?")+"attention=true&limit=10"), api("/api/orders"+shopQ())]);
+  const h = sys.health||{};
+  v.innerHTML = `
+  <div class="grid stats">
+    ${stat(st.conversations,"محادثات")}${stat(st.messages,"رسائل")}${stat(st.orders,"طلبيات وحجوزات")}${stat(st.orders_new,"طلبيات جديدة")}${stat(money(st.revenue),"قيمة الطلبيات")}${stat(st.attention,"تحتاج ردك")}
+  </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h2>🙋 محادثات تحتاج ردك</h2>${att.length? att.map(c=>`<div class="list-item" data-conv="${c.id}"><b>${esc(who(c))}</b> <span class="muted">${CH[c.channel]||c.channel} · ${esc(c.shop_name)}</span><div class="muted">${esc((c.last_message||"").slice(0,90))}</div></div>`).join("") : `<div class="empty">ما كاين والو، البوت راهو يتكفل 👌</div>`}</div>
+    <div class="card"><h2>🛒 آخر الطلبيات</h2>${orders.length? `<div class="table-wrap"><table>${orders.slice(0,6).map(o=>`<tr><td>#${o.id}</td><td>${esc(o.customer_name)}<div class="muted">${esc(o.phone)}</div></td><td>${o.kind==="booking"?"📅":money(o.total)}</td><td>${pill(o.status)}</td></tr>`).join("")}</table></div>` : `<div class="empty">مازال ما كاين حتى طلبية</div>`}</div>
+  </div>
+  <div class="card"><h2>⚙️ حالة النظام</h2>
+    <div class="row"><span>المحرك:</span> <b>${esc(providerName(sys.provider))}</b> ${h.ok?'<span class="pill ok">يخدم</span>':'<span class="pill bad">فيه مشكل</span>'} ${h.detail?`<span class="muted">${esc(h.detail)}</span>`:""}</div>
+    <p class="muted">${sys.provider==="rules" ? "البوت راهو يخدم بالمحرك المدمج (بلا نموذج). باش تستعمل نموذجك المدرَّب: حط LLM_PROVIDER=ollama في ملف .env" : "إذا النموذج طاح ولا جاوب بمعلومة غالطة، المحرك المدمج يجاوب بلاصتو أوتوماتيكياً."}</p>
+    <div class="muted">الإصدار ${esc(sys.version)} · ${sys.notify_bot ? "تنبيهات تيليغرام مفعّلة" : "تنبيهات تيليغرام: حط NOTIFY_TELEGRAM_TOKEN ولا توكن بوت المحل"}</div>
+  </div>`;
+  v.querySelectorAll("[data-conv]").forEach(el => el.onclick = () => { S.tab="convs"; S.openConv=+el.dataset.conv; render(); });
+}
+const stat = (v,l) => `<div class="stat"><div class="v">${esc(v)}</div><div class="l">${l}</div></div>`;
+const pill = s => { const [l,c]=STATUS[s]||[s,""]; return `<span class="pill ${c}">${l}</span>`; };
+const providerName = p => ({rules:"المحرك المدمج", ollama:"نموذجك (Ollama)", openai:"سيرفر نموذج (OpenAI-compatible)", anthropic:"Claude"})[p]||p;
+
+// ---------------- conversations ----------------
+async function viewConvs(){
+  const v=$("#view");
+  v.innerHTML = `<div class="convs ${S.openConv?"open":""}" id="convs"><div class="card conv-list"><div class="row" style="justify-content:space-between"><h2 style="margin:0">المحادثات</h2><label class="check" style="margin:0"><input type="checkbox" id="att-only" ${S.attOnly?"checked":""}> تحتاج ردك برك</label></div><div id="clist"></div></div><div class="card conv-view" id="cview"><div class="empty">اختار محادثة</div></div></div>`;
+  $("#att-only").onchange = e => { S.attOnly = e.target.checked; loadConvList(); };
+  await loadConvList();
+  if(S.openConv) openConv(S.openConv);
+  S.timer = setInterval(() => { loadConvList(); if(S.openConv) openConv(S.openConv, true); }, 8000);
+}
+async function loadConvList(){
+  const q = new URLSearchParams(); if(S.shop) q.set("shop_id",S.shop); if(S.attOnly) q.set("attention","true");
+  const list = await api("/api/conversations?"+q);
+  const el = $("#clist"); if(!el) return;
+  el.innerHTML = list.length ? list.map(c=>`<div class="list-item ${c.id===S.openConv?"active":""}" data-id="${c.id}">
+    <div class="row" style="justify-content:space-between"><b>${esc(who(c))}</b><span class="muted">${when(c.updated_at)}</span></div>
+    <div class="muted">${CH[c.channel]||c.channel}${S.shop?"":" · "+esc(c.shop_name)} ${c.status==="human"?'<span class="pill info">بشري</span>':""} ${c.needs_attention?'<span class="pill warn">يحتاج رد</span>':""}</div>
+    <div class="muted">${esc((c.last_message||"").slice(0,80))}</div></div>`).join("") : `<div class="empty">ما كاين حتى محادثة</div>`;
+  el.querySelectorAll("[data-id]").forEach(x => x.onclick = () => openConv(+x.dataset.id));
+}
+async function openConv(id, silent){
+  S.openConv = id; $("#convs")?.classList.add("open");
+  const c = await api(`/api/conversations/${id}`);
+  const box = $("#cview"); if(!box) return;
+  const draft = $("#reply-text")?.value || "";
+  const chatEl = $("#chat-box"); const atBottom = !chatEl || chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 40;
+  if(silent && box.dataset.count === String(c.messages.length) && box.dataset.status === c.status) return;
+  box.dataset.count = c.messages.length; box.dataset.status = c.status;
+  box.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <div><button class="btn secondary small" id="back">→</button> <b>${esc(who(c))}</b> <span class="muted">${CH[c.channel]||c.channel} · ${esc(c.shop_name)}</span></div>
+      <div class="row">${c.status==="human" ? `<span class="pill info">راك تجاوب انت</span><button class="btn small" id="to-bot">رجّع البوت 🤖</button>` : `<span class="pill ok">البوت يجاوب</span><button class="btn secondary small" id="to-human">نجاوب أنا</button>`}
+      ${c.needs_attention?`<button class="btn secondary small" id="done">✓ تمّ</button>`:""}</div>
+    </div>
+    <div class="chat" id="chat-box" style="margin-top:12px">${c.messages.map(msgView).join("")}</div>
+    <form id="reply-form" class="row" style="margin-top:12px"><input id="reply-text" placeholder="اكتب ردك للزبون..." autocomplete="off" style="flex:1"><button class="btn">بعث</button></form>
+    <div class="muted">كي تبعث رد، البوت يحبس في هاد المحادثة حتى ترجعو. صحّح ردود البوت بـ ✏️ باش تحسّن التدريب.</div>`;
+  $("#reply-text").value = draft;
+  const cb=$("#chat-box"); if(atBottom) cb.scrollTop = cb.scrollHeight;
+  $("#back").onclick = () => { S.openConv=null; $("#convs").classList.remove("open"); };
+  $("#to-bot")?.addEventListener("click", async()=>{ await api(`/api/conversations/${id}/status`,{method:"POST",body:{status:"bot",needs_attention:false}}); openConv(id); loadConvList(); });
+  $("#to-human")?.addEventListener("click", async()=>{ await api(`/api/conversations/${id}/status`,{method:"POST",body:{status:"human"}}); openConv(id); });
+  $("#done")?.addEventListener("click", async()=>{ await api(`/api/conversations/${id}/status`,{method:"POST",body:{needs_attention:false}}); openConv(id); loadConvList(); refreshBadge(); });
+  $("#reply-form").onsubmit = async e => { e.preventDefault(); const t=$("#reply-text").value.trim(); if(!t) return;
+    const r = await api(`/api/conversations/${id}/reply`,{method:"POST",body:{text:t}}); $("#reply-text").value="";
+    if(c.channel!=="web" && c.channel!=="test" && !r.sent) toast("تسجّل الرد بصح ما تبعثش: شوف إعدادات القناة"); openConv(id); loadConvList(); refreshBadge(); };
+  box.querySelectorAll("[data-fix]").forEach(el => el.onclick = async () => {
+    const m = c.messages.find(x => x.id === +el.dataset.fix);
+    const val = prompt("اكتب الرد الصحيح (يستعمل في التدريب). خليه فارغ باش تمحي التصحيح:", m.corrected || m.content);
+    if(val === null) return; await api(`/api/messages/${m.id}/correct`,{method:"PUT",body:{corrected:val}}); toast("تسجّل التصحيح ✓"); box.dataset.count=""; openConv(id);
+  });
+}
+function msgView(m){
+  const by = {user:"الزبون", assistant:"البوت", owner:"أنت"}[m.role]||m.role;
+
+  return `<div class="msg ${m.role}">${esc(m.content)}${m.corrected?`<div class="corrected">✏️ ${esc(m.corrected)}</div>`:""}
+    <div class="meta"><span>${by}${m.provider ? ` · <bdi>${esc(m.provider)}</bdi>` : ""} · <bdi>${when(m.created_at)}</bdi></span>${m.role==="assistant"?`<span class="fix" data-fix="${m.id}" title="صحّح">✏️</span>`:""}</div></div>`;
+}
+
+// ---------------- orders ----------------
+async function viewOrders(){
+  const v=$("#view");
+  const q = new URLSearchParams(); if(S.shop) q.set("shop_id",S.shop); if(S.orderStatus) q.set("status",S.orderStatus);
+  const list = await api("/api/orders?"+q);
+  v.innerHTML = `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">الطلبيات والحجوزات</h2>
+    <div class="row"><select id="ost" style="width:auto"><option value="">الكل</option>${Object.entries(STATUS).map(([k,[l]])=>`<option value="${k}" ${S.orderStatus===k?"selected":""}>${l}</option>`).join("")}</select>
+    <a class="btn secondary small" href="/api/orders.csv${shopQ()}${ownerKey()?(shopQ()?"&":"?")+"owner_key="+encodeURIComponent(ownerKey()):""}">⬇ Excel (CSV)</a></div></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>#</th><th>التاريخ</th><th>الزبون</th><th>السلعة</th><th>العنوان/الوقت</th><th>المجموع</th><th>الحالة</th></tr></thead><tbody>
+    ${list.map(o=>`<tr><td>${o.id}${o.kind==="booking"?" 📅":""}</td><td class="muted">${when(o.created_at)}${S.shop?"":"<br>"+esc(o.shop_name)}</td>
+      <td><b>${esc(o.customer_name)}</b><br><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></td>
+      <td>${o.items.map(i=>`${esc(i.name)}${i.size?" ("+esc(i.size)+")":""} × ${i.qty}`).join("<br>")}</td>
+      <td>${esc([o.wilaya,o.address].filter(Boolean).join("، "))}${o.preferred_time?"<br>🕐 "+esc(o.preferred_time):""}</td>
+      <td>${money(o.total)}</td>
+      <td><select data-order="${o.id}" style="width:auto">${Object.entries(STATUS).map(([k,[l]])=>`<option value="${k}" ${o.status===k?"selected":""}>${l}</option>`).join("")}</select>
+      ${o.conversation_id?`<div><a href="#" data-goconv="${o.conversation_id}" class="muted">المحادثة ←</a></div>`:""}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty">ما كاين حتى طلبية${S.orderStatus?" بهاد الحالة":""}</div>`}</div>`;
+  $("#ost").onchange = e => { S.orderStatus = e.target.value; viewOrders(); };
+  v.querySelectorAll("[data-order]").forEach(s => s.onchange = async () => { await api(`/api/orders/${s.dataset.order}`,{method:"PUT",body:{status:s.value}}); toast("تبدلت الحالة ✓"); });
+  v.querySelectorAll("[data-goconv]").forEach(a => a.onclick = e => { e.preventDefault(); S.tab="convs"; S.openConv=+a.dataset.goconv; render(); });
+}
+
+// ---------------- shop & products ----------------
+async function viewShop(){
+  const v=$("#view");
+  if(!S.shop){
+    v.innerHTML = `<div class="card"><h2>المحلات</h2><div class="table-wrap"><table>${S.shops.map(s=>`<tr><td><b>${esc(s.name)}</b><div class="muted">/${esc(s.slug)}</div></td><td>${esc(MODES[s.info.mode]||"")}</td><td>${s.bot_enabled?'<span class="pill ok">البوت يخدم</span>':'<span class="pill bad">مطفي</span>'}</td><td><button class="btn small secondary" data-pick="${s.id}">تعديل</button></td></tr>`).join("")}</table></div></div>
+    ${S.me.role==="admin" ? `<div class="card"><h2>➕ محل جديد</h2><form id="new-shop" class="grid two"><div><label>اسم المحل</label><input id="ns-name" required placeholder="مثال: بوتيك أمال"></div><div><label>الرابط (بالحروف اللاتينية)</label><input id="ns-slug" required placeholder="boutique-amel" dir="ltr"></div><div><label>نوع النشاط</label><select id="ns-mode">${Object.entries(MODES).map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select></div><div style="align-self:end"><button class="btn">إنشاء المحل</button></div></form></div>`:""}`;
+    v.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { S.shop=b.dataset.pick; render(); });
+    const f=$("#new-shop"); if(f){ $("#ns-name").oninput = e => { if(!$("#ns-slug").dataset.touched) $("#ns-slug").value = slugify(e.target.value); }; $("#ns-slug").oninput = e => e.target.dataset.touched = 1;
+      f.onsubmit = async e => { e.preventDefault(); const s = await api("/api/shops",{method:"POST",body:{name:$("#ns-name").value, slug:$("#ns-slug").value, info:{mode:$("#ns-mode").value, delivery_available:$("#ns-mode").value==="delivery"}}}); await loadShops(); S.shop=String(s.id); toast("تنشأ المحل ✓ كمّل المعلومات"); render(); }; }
+    return;
+  }
+  const shop = await api(`/api/shops/${S.shop}`); const i = shop.info;
+  v.innerHTML = `
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(shop.name)}</h2>
+    <label class="check" style="margin:0"><input type="checkbox" id="bot-on" ${shop.bot_enabled?"checked":""}> البوت يجاوب الزبائن</label></div>
+  <form id="shop-form">
+    <div class="grid two">
+      <div><label>اسم المحل</label><input name="name" value="${esc(shop.name)}" required></div>
+      <div><label>نوع النشاط</label><select name="mode">${Object.entries(MODES).map(([k,l])=>`<option value="${k}" ${i.mode===k?"selected":""}>${l}</option>`).join("")}</select></div>
+      <div><label>المدينة</label><input name="city" value="${esc(i.city)}"></div>
+      <div><label>العنوان</label><input name="address" value="${esc(i.address)}"></div>
+      <div><label>أوقات العمل</label><input name="hours" value="${esc(i.hours)}" placeholder="من 9 الصباح حتى 7 العشية، الجمعة مسكّر"></div>
+      <div><label>رقم الهاتف</label><input name="phone" value="${esc(i.phone)}" dir="ltr"></div>
+      <div><label>طرق الدفع</label><input name="payment" value="${esc(i.payment)}" placeholder="الدفع عند الاستلام، بريدي موب"></div>
+      <div><label>الترجيع / الضمان</label><input name="returns" value="${esc(i.returns)}"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="delivery_available" ${i.delivery_available?"checked":""}> كاين التوصيل</label>
+    <div class="grid two">
+      <div><label>سعر التوصيل</label><input name="delivery_price" value="${esc(i.delivery_price)}" placeholder="400 دج في الولاية و700 دج للولايات الأخرى"></div>
+      <div><label>مدة التوصيل</label><input name="delivery_time" value="${esc(i.delivery_time)}" placeholder="24 حتى 72 ساعة"></div>
+      <div><label>مناطق التوصيل</label><input name="delivery_areas" value="${esc(i.delivery_areas)}" placeholder="58 ولاية"></div>
+      <div><label>رابط Google Maps (اختياري)</label><input name="maps_url" value="${esc(i.maps_url)}" dir="ltr"></div>
+    </div>
+    <label>رسالة الترحيب (اختياري)</label><input name="welcome" value="${esc(i.welcome)}" placeholder="مرحبا بيك! كيفاش نقدر نعاونك؟">
+    <label>معلومات إضافية يعرفها البوت (اختياري)</label><textarea name="extra" placeholder="مثال: كاين باركينغ قدام المحل، نبيعو بالجملة فوق 10 حبات...">${esc(i.extra)}</textarea>
+    <details ${i.faqs?.length?"open":""}><summary>أسئلة متكررة (${(i.faqs||[]).length})</summary><div id="faqs">${(i.faqs||[]).map(faqRow).join("")}</div><button type="button" class="btn secondary small" id="add-faq">+ سؤال</button></details>
+    <div class="row" style="margin-top:14px"><button class="btn">💾 حفظ المعلومات</button>${S.me.role==="admin"?`<button type="button" class="btn danger small" id="del-shop">حذف المحل</button>`:""}<a href="#" id="see-prompt" class="muted">شوف واش يعرف البوت ←</a></div>
+  </form></div>
+  <div class="card"><h2>🛍️ السلع / الخدمات (${shop.products.length})</h2>
+    <div class="table-wrap"><table><thead><tr><th>الاسم</th><th>السعر (دج)</th><th>المقاسات/الأحجام</th><th>أسماء أخرى يستعملها الزبائن</th><th>متوفر</th><th></th></tr></thead><tbody id="prods">
+    ${shop.products.map(p=>prodRow(p)).join("")}
+    <tr><td><input id="np-name" placeholder="سروال جينز"></td><td><input id="np-price" type="number" min="0" placeholder="2800"></td><td><input id="np-sizes" placeholder="من 36 حتى 46"></td><td><input id="np-aliases" placeholder="جينز، jean"></td><td><input type="checkbox" id="np-stock" checked style="width:auto"></td><td><button class="btn small" id="np-add">+ زيد</button></td></tr>
+    </tbody></table></div>
+    <p class="muted">"أسماء أخرى" تعاون البوت يفهم الزبون كي يكتب بالدارجة ولا بالفرنسية (مثلاً: جاكيطة، veste، blouson).</p>
+  </div>
+  <div class="card hidden" id="prompt-card"><h2>هادي المعلومات اللي يشوفها البوت</h2><pre class="code" id="prompt-box"></pre></div>`;
+  $("#add-faq").onclick = () => $("#faqs").insertAdjacentHTML("beforeend", faqRow({q:"",a:""}));
+  $("#faqs").onclick = e => { if(e.target.dataset.delfaq!==undefined) e.target.closest(".faq-row").remove(); };
+  $("#bot-on").onchange = async e => { await api(`/api/shops/${S.shop}`,{method:"PUT",body:{bot_enabled:e.target.checked}}); await loadShops(); toast(e.target.checked?"البوت رجع يخدم ✓":"البوت حبس"); };
+  $("#shop-form").onsubmit = async e => { e.preventDefault(); const f = e.target;
+    const g = n => f.elements[n].value.trim();
+    const faqs = [...document.querySelectorAll(".faq-row")].map(r => ({q:r.querySelector("[data-q]").value.trim(), a:r.querySelector("[data-a]").value.trim()})).filter(x=>x.q&&x.a);
+    const info = {mode:g("mode"), city:g("city"), address:g("address"), hours:g("hours"), phone:g("phone"), payment:g("payment"), returns:g("returns"),
+      delivery_available:f.elements.delivery_available.checked, delivery_price:g("delivery_price"), delivery_time:g("delivery_time"), delivery_areas:g("delivery_areas"),
+      maps_url:g("maps_url"), welcome:g("welcome"), extra:g("extra"), faqs};
+    await api(`/api/shops/${S.shop}`,{method:"PUT",body:{name:g("name"), info}}); await loadShops(); toast("تحفظت المعلومات ✓"); };
+  $("#del-shop")?.addEventListener("click", async()=>{ if(!confirm("متأكد؟ كل المحادثات والطلبيات تاع هاد المحل يتمحاو.")) return; await api(`/api/shops/${S.shop}`,{method:"DELETE"}); await loadShops(); S.shop=""; render(); });
+  $("#see-prompt").onclick = async e => { e.preventDefault(); $("#prompt-box").textContent = await api(`/api/shops/${S.shop}/prompt`); $("#prompt-card").classList.remove("hidden"); $("#prompt-card").scrollIntoView({behavior:"smooth"}); };
+  $("#np-add").onclick = async () => { const name=$("#np-name").value.trim(); if(!name) return toast("اكتب اسم المنتج");
+    await api(`/api/shops/${S.shop}/products`,{method:"POST",body:{name, price:+$("#np-price").value||0, sizes:$("#np-sizes").value.trim(), aliases:$("#np-aliases").value.trim(), in_stock:$("#np-stock").checked}}); toast("تزاد ✓"); viewShop(); };
+  $("#prods").addEventListener("change", async e => { const tr=e.target.closest("tr[data-pid]"); if(!tr) return;
+    const body = {name:tr.querySelector("[data-f=name]").value.trim(), price:+tr.querySelector("[data-f=price]").value||0, sizes:tr.querySelector("[data-f=sizes]").value.trim(), aliases:tr.querySelector("[data-f=aliases]").value.trim(), in_stock:tr.querySelector("[data-f=in_stock]").checked};
+    await api(`/api/products/${tr.dataset.pid}`,{method:"PUT",body}); toast("تحفظ ✓"); });
+  $("#prods").addEventListener("click", async e => { if(e.target.dataset.del===undefined) return; const tr=e.target.closest("tr"); if(!confirm("نمحو هاد المنتج؟")) return; await api(`/api/products/${tr.dataset.pid}`,{method:"DELETE"}); tr.remove(); });
+}
+const faqRow = f => `<div class="faq-row"><input data-q placeholder="السؤال: كاين تخفيضات؟" value="${esc(f.q)}"><input data-a placeholder="الجواب: إيه كل خميس..." value="${esc(f.a)}"><button type="button" class="btn secondary small" data-delfaq>✕</button></div>`;
+const prodRow = p => `<tr data-pid="${p.id}"><td><input data-f="name" value="${esc(p.name)}"></td><td><input data-f="price" type="number" min="0" value="${p.price}"></td><td><input data-f="sizes" value="${esc(p.sizes)}"></td><td><input data-f="aliases" value="${esc(p.aliases)}"></td><td><input data-f="in_stock" type="checkbox" ${p.in_stock?"checked":""} style="width:auto"></td><td><button class="btn secondary small" data-del>🗑</button></td></tr>`;
+const slugify = s => s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g,"").trim().replace(/[\s_]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+
+// ---------------- channels ----------------
+async function viewChannels(){
+  const v=$("#view");
+  if(!S.shop){ v.innerHTML = `<div class="card empty">اختار محل من الفوق باش تربط القنوات</div>`; return; }
+  const [shop, sys] = await Promise.all([api(`/api/shops/${S.shop}`), api("/api/system")]);
+  const L = shop.links; const set = b => b ? '<span class="pill ok">محطوط</span>' : '<span class="pill">ماهوش محطوط</span>';
+  v.innerHTML = `
+  <div class="card"><h2>🌐 موقعك ولا صفحتك</h2>
+    <label>رابط الدردشة المباشر (حطو في البيو تاع إنستغرام ولا فيسبوك)</label>
+    <div class="row"><code style="flex:1">${esc(L.chat_page)}</code><button class="btn small secondary" data-copy="${esc(L.chat_page)}">نسخ</button><a class="btn small" href="${esc(L.chat_page)}" target="_blank">فتح</a></div>
+    <label>كود الويدجت (حطو في موقعك قبل &lt;/body&gt;)</label>
+    <div class="row"><code style="flex:1">${esc(L.widget)}</code><button class="btn small secondary" data-copy="${esc(L.widget)}">نسخ</button></div>
+    ${L.owner_dashboard?`<label>رابط لوحة التحكم الخاص بصاحب المحل (يشوف محلو برك)</label><div class="row"><code style="flex:1">${esc(L.owner_dashboard)}</code><button class="btn small secondary" data-copy="${esc(L.owner_dashboard)}">نسخ</button><button class="btn small danger" id="rotate">رابط جديد</button></div>`:""}
+  </div>
+  <form class="card" id="ch-form"><h2>✈️ تيليغرام</h2>
+    <ol class="muted"><li>في تيليغرام افتح <b>@BotFather</b> واكتب <code>/newbot</code>، وانسخ التوكن.</li><li>حطو هنا واضغط "حفظ" ومن بعد "ربط".</li><li>للتنبيهات: ابعث <code>/myid</code> للبوت تاعك، وحط الرقم في "رقم محادثة صاحب المحل".</li></ol>
+    <div class="grid two"><div><label>توكن البوت ${set(shop.telegram_token_set)}</label><input name="telegram_token" placeholder="123456:ABC..." dir="ltr" autocomplete="off"></div>
+    <div><label>رقم محادثة صاحب المحل (للتنبيهات)</label><input name="owner_telegram_chat_id" value="${esc(shop.owner_telegram_chat_id)}" dir="ltr"></div></div>
+    <div class="row" style="margin-top:10px"><button type="button" class="btn secondary small" id="tg-connect">🔗 ربط البوت</button><span class="muted">Webhook: <code>${esc(L.telegram_webhook)}</code></span></div>
+    <h2 style="margin-top:22px">🟢 واتساب (WhatsApp Cloud API)</h2>
+    <ol class="muted"><li>اعمل تطبيق في developers.facebook.com وزيد منتج WhatsApp.</li><li>Callback URL: <code>${esc(L.meta_webhook)}</code></li><li>Verify token: <code>${esc(sys.meta_verify_token||"(عند المدير)")}</code> واشترك في <b>messages</b>.</li></ol>
+    <div class="grid two"><div><label>Phone number ID</label><input name="wa_phone_number_id" value="${esc(shop.wa_phone_number_id)}" dir="ltr"></div>
+    <div><label>Access token ${set(shop.wa_token_set)}</label><input name="wa_token" dir="ltr" autocomplete="off"></div></div>
+    <h2 style="margin-top:22px">💬 ماسنجر و 📸 إنستغرام</h2>
+    <p class="muted">نفس الـ Callback URL والـ Verify token. اشترك في <b>messages</b> للصفحة (وللإنستغرام المربوط بيها).</p>
+    <div class="grid two"><div><label>Page ID</label><input name="fb_page_id" value="${esc(shop.fb_page_id)}" dir="ltr"></div>
+    <div><label>Page access token ${set(shop.fb_page_token_set)}</label><input name="fb_page_token" dir="ltr" autocomplete="off"></div></div>
+    <p class="muted">التوكنات ما يبانوش بعد الحفظ (للأمان). خلي الخانة فارغة باش ما تتبدلش.</p>
+    <button class="btn" style="margin-top:8px">💾 حفظ</button>
+  </form>`;
+  v.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy).then(()=>toast("تنسخ ✓"), ()=>toast("ما قدرتش ننسخ")); });
+  $("#rotate")?.addEventListener("click", async()=>{ if(!confirm("الرابط القديم يحبس يخدم. نكملو؟")) return; await api(`/api/shops/${S.shop}/rotate-key`,{method:"POST"}); viewChannels(); });
+  $("#ch-form").onsubmit = async e => { e.preventDefault(); const f=e.target; const body={};
+    ["owner_telegram_chat_id","wa_phone_number_id","fb_page_id"].forEach(n => body[n]=f.elements[n].value.trim());
+    ["telegram_token","wa_token","fb_page_token"].forEach(n => { const x=f.elements[n].value.trim(); if(x) body[n]=x; });
+    await api(`/api/shops/${S.shop}/channels`,{method:"PUT",body}); toast("تحفظ ✓"); viewChannels(); };
+  $("#tg-connect").onclick = async () => { const r = await api(`/api/shops/${S.shop}/telegram/connect`,{method:"POST"}); toast(r.ok ? `تربط البوت @${r.bot} ✓` : (r.detail||"ما تربطش")); };
+}
+
+// ---------------- test chat ----------------
+function viewTest(){
+  const v=$("#view");
+  if(!S.shop){ v.innerHTML = `<div class="card empty">اختار محل من الفوق باش تجرب البوت تاعو</div>`; return; }
+  v.innerHTML = `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🧪 جرّب البوت كأنك زبون</h2><button class="btn secondary small" id="reset">محادثة جديدة</button></div>
+    <div class="chat" id="tchat" style="min-height:300px;margin-top:12px"></div>
+    <form id="tform" class="row" style="margin-top:12px"><input id="ttext" placeholder="مثال: بشحال السروال؟ / حاب نطلب..." autocomplete="off" style="flex:1"><button class="btn">بعث</button></form>
+    <div class="row" style="margin-top:8px">${["السلام عليكم","واش عندكم؟","شحال التوصيل؟","وين راكم؟","حاب نطلب","نحب نهدر مع المسؤول"].map(t=>`<button class="btn secondary small" data-quick="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    <p class="muted">رسائل التجربة تبان في "المحادثات" (🧪)، والطلبيات اللي تأكدهم هنا تتسجل بصح.</p></div>`;
+  const send = async text => { if(!text) return; addBubble("user", text); $("#ttext").value="";
+    try{ const r = await api(`/api/shops/${S.shop}/test-chat`,{method:"POST",body:{text, session:S.testSession}});
+      addBubble("assistant", r.reply || "(البوت ما جاوبش: المحادثة عند بشري ولا البوت مطفي)", r.provider + (r.events.length?" · 🔔 "+r.events.join(","):"")); }catch(e){} };
+  $("#tform").onsubmit = e => { e.preventDefault(); send($("#ttext").value.trim()); };
+  v.querySelectorAll("[data-quick]").forEach(b => b.onclick = () => send(b.dataset.quick));
+  $("#reset").onclick = async () => { await api(`/api/shops/${S.shop}/test-chat`,{method:"POST",body:{text:"سلام", session:S.testSession, reset:true}}); S.testSession=Math.random().toString(36).slice(2,10); $("#tchat").innerHTML=""; toast("محادثة جديدة"); };
+  $("#ttext").focus();
+}
+function addBubble(role, text, meta){ const c=$("#tchat"); const d=document.createElement("div"); d.className="msg "+role; d.textContent=text;
+  if(meta){ const m=document.createElement("div"); m.className="meta"; m.textContent=meta; d.appendChild(m); } c.appendChild(d); c.scrollTop=c.scrollHeight; }
+
+// ---------------- training ----------------
+function viewTrain(){
+  const v=$("#view"); const k=ownerKey(); const base=`/api/export/training.jsonl?${S.shop?"shop_id="+S.shop+"&":""}${k?"owner_key="+encodeURIComponent(k)+"&":""}`;
+  v.innerHTML = `<div class="card"><h2>🎓 حسّن النموذج بالمحادثات الحقيقية</h2>
+  <ol><li>في "المحادثات"، صحّح أي رد غالط تاع البوت بـ ✏️ (ولا جاوب انت بيدك).</li>
+  <li>حمّل الملف تحت، وسمّيه <code>my_examples.jsonl</code> وحطو في <code>ai-darja/data/</code>.</li>
+  <li>شغّل <code>python3 generate_data.py</code> ومن بعد عاود التدريب في Colab (<code>train_colab.ipynb</code>).</li>
+  <li>حط النموذج الجديد في Ollama: البوت يولّي يهدر كيما زبائنك بالضبط 🎯</li></ol>
+  <div class="row"><a class="btn" href="${base}only_reviewed=true">⬇ المحادثات المصحّحة برك (أحسن جودة)</a><a class="btn secondary" href="${base}">⬇ كل المحادثات</a></div>
+  <p class="muted">التصحيحات تتعوض في الملف بلاصة رد البوت الأصلي. المحادثات التجريبية تتصدّر تاني، امسحها إذا ما تحبهاش.</p></div>`;
+}
+
+try{ const t=localStorage.getItem("djb_theme"); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+boot();
+</script>
+</body>
+</html>
