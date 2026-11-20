@@ -91,14 +91,13 @@ class RateLimiter:
         if len(q) >= self.per_minute:
             return False
         q.append(now)
-        if len(self.hits) > 10000:  # تنظيف
-            for k in [k for k, v in self.hits.items() if not v][:5000]:
+        if len(self.hits) > 10000:  # تنظيف الزوار القدام
+            for k in [k for k, v in self.hits.items() if not v or now - v[-1] > 60]:
                 self.hits.pop(k, None)
         return True
 
 
 def client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
+    """ما نثقوش في X-Forwarded-For مباشرة (أي واحد يقدر يزوّرو).
+    uvicorn يبدّل request.client بالـ IP الحقيقي غير إذا البروكسي موثوق (FORWARDED_ALLOW_IPS)."""
     return request.client.host if request.client else "unknown"

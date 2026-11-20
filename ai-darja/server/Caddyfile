@@ -1,0 +1,6 @@
+# Caddy يجيب شهادة https مجانية (Let's Encrypt) وحدو.
+# لازم الدومين (DOMAIN في .env) يكون موجّه للـ IP تاع السيرفر، والبورتات 80 و443 مفتوحين.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy bot:8000
+}

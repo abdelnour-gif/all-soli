@@ -1,6 +1,8 @@
 # التشغيل:
-#   docker compose up -d                      ← البوت بالمحرك المدمج
-#   docker compose --profile ollama up -d     ← البوت + نموذجك على Ollama
+#   docker compose up -d                                  ← البوت بالمحرك المدمج (http://localhost:8000)
+#   docker compose --profile https up -d                  ← + https أوتوماتيكي بـ Caddy (حط DOMAIN في .env)
+#   docker compose --profile ollama up -d                 ← + نموذجك على Ollama
+#   docker compose --profile https --profile ollama up -d ← كلشي
 services:
   bot:
     build: .
@@ -11,10 +13,27 @@ services:
     environment:
       DATA_DIR: /data
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      # البوت ما يتوصلش من برا غير عبر البروكسي (Caddy/Nginx)، لهذا نثقو في العنوان اللي يبعثو
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
     ports:
-      - "8000:8000"
+      # 127.0.0.1 = البوت يبان غير في السيرفر نفسو (البروكسي يوصلو). حط 0.0.0.0 باش تجرب من برا بلا https
+      - "${BOT_BIND:-127.0.0.1}:8000:8000"
     volumes:
       - bot-data:/data
+
+  caddy:
+    image: caddy:2.8.4
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [bot]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
 
   ollama:
     image: ollama/ollama:0.5.7
@@ -32,3 +51,4 @@ services:
 volumes:
   bot-data:
   ollama-models:
+  caddy-data:

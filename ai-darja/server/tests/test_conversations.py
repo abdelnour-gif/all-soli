@@ -162,3 +162,16 @@ def test_quantity_and_size_from_first_message(chat):
     assert "(M) × 2" in r.text and "2400 دج" in r.text
     r = chat("boutique-leila", "ابعثلي الجينز 38", user="u9")
     assert "(38)" in r.text and "× " not in r.text
+
+
+def test_human_mode_times_out_from_last_team_reply(chat, monkeypatch):
+    import time as _time
+    from darjabot import engine as eng
+    r = chat("boutique-leila", "نحب نهدر مع المسؤول")
+    conv_id = r.conversation["id"]
+    assert chat("boutique-leila", "سلام؟").text is None          # البوت ساكت
+    later = _time.time() + eng.HUMAN_TIMEOUT_SECONDS + 60
+    monkeypatch.setattr(eng.time, "time", lambda: later)
+    r = chat("boutique-leila", "بشحال السروال؟")                # حتى واحد ما جاوب: البوت يرجع
+    assert r.text and "2800 دج" in r.text
+    assert db.get_conversation(conv_id)["status"] == "bot"

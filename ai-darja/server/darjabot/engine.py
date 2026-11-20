@@ -110,9 +110,12 @@ def handle_message(shop: dict, channel: str, external_id: str, text: str, custom
     conv = db.get_or_create_conversation(shop["id"], channel, external_id, customer_name)
     events: list[str] = []
 
-    # الرجوع التلقائي للبوت بعد مدة طويلة بلا رد بشري
-    if conv["status"] == "human" and time.time() - conv["updated_at"] > HUMAN_TIMEOUT_SECONDS:
-        conv = db.update_conversation(conv["id"], status="bot")
+    # الرجوع التلقائي للبوت إذا ما جاوب حتى واحد من الفريق مدة طويلة
+    if conv["status"] == "human":
+        last_reply = max((m["created_at"] for m in db.list_messages(conv["id"], limit=50)
+                          if m["role"] in ("owner", "assistant")), default=conv["updated_at"])
+        if time.time() - last_reply > HUMAN_TIMEOUT_SECONDS:
+            conv = db.update_conversation(conv["id"], status="bot")
 
     db.add_message(conv["id"], "user", text)
     if not text:

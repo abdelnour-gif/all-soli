@@ -85,8 +85,19 @@ docker compose exec ollama ollama create darja -f /workspace/Modelfile
 docker compose up -d bot
 ```
 
+### 🔒 https أوتوماتيكي (لازم لتيليغرام وواتساب)
+1. وجّه الدومين تاعك (مثلاً `bot.monsite.dz`) للـ IP تاع السيرفر.
+2. في `.env`: `DOMAIN=bot.monsite.dz` و `PUBLIC_BASE_URL=https://bot.monsite.dz`
+3. شغّل:
+```bash
+docker compose --profile https up -d
+```
+Caddy يجيب شهادة مجانية وحدو. لوحة التحكم: `https://bot.monsite.dz/admin/`
+
 > 💡 **السيرفر:** أي VPS بـ 2 جيغا رام يكفي للمحرك المدمج. لنموذج 3B على Ollama بلا GPU: 4 حتى 8 جيغا رام
-> (الرد ياخذ 3 حتى 10 ثواني). حط السيرفر وراء Nginx ولا Caddy باش يكون عندك **https** (لازم لتيليغرام وواتساب).
+> (الرد ياخذ 3 حتى 10 ثواني). بلا Docker، تقدر تستعمل Nginx قدام `uvicorn`.
+>
+> 🔐 كلمة سر المدير: `docker compose exec bot cat /data/admin_password.txt`
 
 ## 🔌 ربط القنوات
 
