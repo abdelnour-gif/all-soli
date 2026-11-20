@@ -34,6 +34,11 @@ SHOPS = [
             {"name": "تيشورت قطن", "price": 1200, "sizes": "S حتى XXL", "stock": True},
         ],
         "phone": "0555123456",
+        "extra": "كاين باركينغ قدام المحل، ونبيعو بالجملة فوق 10 حبات بتخفيض 15%",
+        "faqs": [
+            {"q": "كاين تخفيضات؟", "a": "إيه، كل خميس كاين تخفيض 10% على السراول"},
+            {"q": "السلعة منين؟", "a": "السلعة تركية، جودة مليحة"},
+        ],
     },
     {
         "name": "بيتزيريا الأصيل", "type": "food", "city": "الجزائر العاصمة",
@@ -48,6 +53,8 @@ SHOPS = [
             {"name": "شاورمة دجاج", "price": 450, "sizes": "حجم واحد", "stock": True},
         ],
         "phone": "0770987654",
+        "extra": "كاين بلاصة للعائلات في الطابق الأول، والجمعة كاين عرض: بيتزا كبيرة + مشروب بـ 1500 دج",
+        "faqs": [{"q": "تديرو الحفلات؟", "a": "إيه، نقبلو طلبيات الحفلات وأعياد الميلاد، خبرونا قبل يومين"}],
     },
     {
         "name": "فون ستور سطيف", "type": "phones", "city": "سطيف",
@@ -90,6 +97,8 @@ SHOPS = [
             {"name": "تبييض الأسنان", "price": 15000, "sizes": "", "stock": True},
         ],
         "phone": "025412233",
+        "extra": "الطبيبة تهدر بالفرنسية والعربية، وكاين باركينغ مجاني",
+        "faqs": [{"q": "تقبلو الكارت شفاء؟", "a": "لا، ما نخدموش بالكارت شفاء حالياً"}],
     },
     {
         "name": "حلويات الدار", "type": "sweets", "city": "تيزي وزو",
@@ -140,6 +149,12 @@ def shop_card(s: dict) -> str:
         extra = f" | {p['sizes']}" if p["sizes"] else ""
         stock = "متوفر" if p["stock"] else "غير متوفر حالياً"
         lines.append(f"- {p['name']}: {money(p['price'])}{extra} | {stock}")
+    if s.get("extra"):
+        lines.append(f"معلومات إضافية: {s['extra']}")
+    if s.get("faqs"):
+        lines.append("أسئلة متكررة:")
+        for f in s["faqs"]:
+            lines.append(f"- س: {f['q']} | ج: {f['a']}")
     return "\n".join(lines)
 
 
@@ -314,16 +329,81 @@ def intent_offtopic(s, r):
     return q, a
 
 
+_FAQ_REPHRASE = {
+    "كاين تخفيضات؟": ["كاين تخفيضات هاد الأسبوع؟", "كاين صولد؟", "عندكم promo؟", "كاين ريميز؟"],
+    "السلعة منين؟": ["السلعة تاعكم منين؟", "هاد الحوايج صنع وين؟", "السلعة تركية ولا شينوا؟"],
+    "تديرو الحفلات؟": ["تقبلو طلبيات تاع عرس؟", "نقدر نطلب للحفلة تاع عيد ميلاد؟", "تديرو الطلبيات الكبار للحفلات؟"],
+    "تقبلو الكارت شفاء؟": ["نخلص بالكارت شفاء؟", "كاين الشفاء؟", "تقبلو carte chifa؟"],
+}
+_EXTRA_Q = {
+    "بوتيك ليلى للملابس": [("كاين وين نباركي؟", "إيه كاين باركينغ قدام المحل."),
+                            ("تبيعو بالجملة؟", "إيه نبيعو بالجملة فوق 10 حبات، وكاين تخفيض 15%.")],
+    "بيتزيريا الأصيل": [("كاين بلاصة للعائلات؟", "إيه كاين بلاصة للعائلات في الطابق الأول."),
+                         ("واش هو العرض تاع الجمعة؟", "الجمعة كاين عرض: بيتزا كبيرة + مشروب بـ 1500 دج.")],
+    "عيادة الشفاء لطب الأسنان": [("الطبيبة تهدر بالفرنسية؟", "إيه، الطبيبة تهدر بالفرنسية والعربية."),
+                                  ("كاين وين نحبس الطوموبيل؟", "إيه كاين باركينغ مجاني.")],
+}
+
+
+def intent_faq(s, r):
+    if not s.get("faqs"):
+        return intent_unknown(s, r)
+    f = r.choice(s["faqs"])
+    q = r.choice([f["q"]] + _FAQ_REPHRASE.get(f["q"], []))
+    return q, f["a"] + "."
+
+
+def intent_extra(s, r):
+    pairs = _EXTRA_Q.get(s["name"])
+    if not pairs:
+        return intent_unknown(s, r)
+    return r.choice(pairs)
+
+
+def followup(s, r):
+    """محادثة بجوج أدوار: سؤال على منتج، ومن بعد متابعة بالضمير ("نطلبها"، "وكاين 40؟")."""
+    p = r.choice([x for x in s["products"] if x["stock"]])
+    q1 = r.choice(["بشحال {p}؟", "كاين {p}؟", "{p} بقداه؟"]).format(p=p["name"])
+    a1 = f"{p['name']} سومتو {money(p['price'])}."
+    if p["sizes"]:
+        a1 += f" كاين {p['sizes']}."
+    a1 += " تحب تطلب؟"
+    kind = r.choice(["order", "sizes", "delivery"] if p["sizes"] else ["order", "delivery"])
+    if kind == "order":
+        q2 = r.choice(["إيه نحب نطلبو", "نحب ناخذها", "حطهالي", "مليح، كيفاش نطلب؟", "إيه"])
+        if s["type"] == "clinic":
+            a2 = f"مرحبا! باش نحجزولك موعد لـ {p['name']}، عطيني اسمك الكامل ورقم هاتفك والنهار اللي يناسبك."
+        elif s["delivery"].get("available"):
+            a2 = f"مرحبا بيك! باش نكملو الطلبية تاع {p['name']} عطيني: الاسم، رقم الهاتف، الولاية والبلدية."
+        else:
+            a2 = f"مرحبا! عطيني اسمك ورقمك ونوجدولك {p['name']}، وتجي تديها من المحل."
+    elif kind == "sizes":
+        q2 = r.choice(["وكاين المقاس الكبير؟", "واش من مقاسات كاين؟", "وفيه الطاي تاعي؟"])
+        a2 = f"{p['name']} كاين فيه: {p['sizes']}. قولي واش من مقاس تحب."
+    else:
+        q2 = r.choice(["وتوصلوها؟", "والتوصيل شحال؟", "وتبعثوها للولاية تاعي؟"])
+        d = s["delivery"]
+        a2 = (f"إيه نوصلوها، التوصيل {d['price']} وياخذ {d['time']}." if d.get("available")
+              else f"لا، ما عندناش التوصيل، لازم تجي للمحل فـ {s['address']}.")
+    return [(q1, a1), (q2, a2)]
+
+
 INTENTS = [
     (intent_price, 18), (intent_stock, 12), (intent_sizes, 7), (intent_delivery, 11),
     (intent_hours, 7), (intent_location, 6), (intent_payment, 6), (intent_returns, 5),
     (intent_order, 10), (intent_greeting, 5), (intent_thanks, 3), (intent_unknown, 5),
-    (intent_complaint, 3), (intent_offtopic, 2),
+    (intent_complaint, 3), (intent_offtopic, 2), (intent_faq, 5), (intent_extra, 4),
 ]
 
 
 def make_example(r: random.Random) -> dict:
     s = r.choice(SHOPS)
+    if r.random() < 0.15:
+        turns = followup(s, r)
+        msgs = [{"role": "system", "content": SYSTEM_TEMPLATE.format(name=s["name"], card=shop_card(s))}]
+        for q, a in turns:
+            msgs += [{"role": "user", "content": q}, {"role": "assistant", "content": a}]
+        return {"messages": msgs}
     fns, weights = zip(*INTENTS)
     fn = r.choices(fns, weights=weights)[0]
     q, a = fn(s, r)
@@ -358,7 +438,7 @@ def main():
     while len(rows) < args.n and tries < args.n * 20:
         tries += 1
         ex = make_example(r)
-        key = (ex["messages"][0]["content"][:40], ex["messages"][1]["content"], ex["messages"][2]["content"])
+        key = (ex["messages"][0]["content"][:40],) + tuple(m["content"] for m in ex["messages"][1:])
         if key in seen:
             continue
         seen.add(key)

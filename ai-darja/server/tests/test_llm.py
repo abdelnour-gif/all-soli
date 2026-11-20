@@ -99,7 +99,8 @@ def test_prompt_matches_training_format():
             "city": s["city"], "address": s["address"], "hours": s["hours"], "phone": s["phone"],
             "delivery_available": d.get("available", False), "delivery_price": d.get("price", ""),
             "delivery_time": d.get("time", ""), "delivery_areas": d.get("wilayas", ""),
-            "payment": s["payment"], "returns": s["returns"]}}
+            "payment": s["payment"], "returns": s["returns"], "extra": s.get("extra", ""),
+            "faqs": s.get("faqs", [])}}
         products = [{"name": p["name"], "price": p["price"], "sizes": p["sizes"], "in_stock": p["stock"]}
                     for p in s["products"]]
         assert system_prompt(shop, products) == training, s["name"]
