@@ -63,6 +63,11 @@ def _startup() -> None:
         log.info("تزادو محلات تجريبية")
     log.info("Darja Bot %s | provider=%s | admin password file: %s", __version__, s.llm_provider,
              s.data_dir / "admin_password.txt")
+    provider = get_provider(s)
+    if provider is not None and hasattr(provider, "warmup"):
+        import threading
+        threading.Thread(target=provider.warmup, daemon=True).start()
+        log.info("يتحمّل النموذج في الذاكرة... (أول مرة تاخذ شوية)")
 
 
 # ---------------------------------------------------------------------------

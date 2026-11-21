@@ -49,7 +49,9 @@ class OllamaProvider(Provider):
             "model": s.ollama_model,
             "messages": [{"role": "system", "content": system}, *messages],
             "stream": False,
-            "options": {"temperature": 0.3, "num_predict": 300},
+            # يبقى النموذج في الذاكرة 60 دقيقة (بلا هذا Ollama يخرجو بعد 5 دقائق وكل رسالة تولي بطيئة)
+            "keep_alive": "60m",
+            "options": {"temperature": 0.3, "num_predict": 200, "num_ctx": 4096},
         }
         try:
             r = httpx.post(f"{s.ollama_url}/api/chat", json=payload, timeout=s.llm_timeout)
@@ -58,6 +60,16 @@ class OllamaProvider(Provider):
         except (httpx.HTTPError, ValueError) as e:
             raise ProviderError(f"ollama: {e}") from e
         return LLMReply(text=text.strip(), provider=f"ollama:{s.ollama_model}")
+
+    def warmup(self) -> None:
+        """يحمّل النموذج في الذاكرة من البداية (أول رسالة تكون سريعة)."""
+        s = self.settings
+        try:
+            httpx.post(f"{s.ollama_url}/api/chat", json={"model": s.ollama_model, "messages": [],
+                                                        "keep_alive": "60m"}, timeout=300)
+            log.info("ollama model %s loaded", s.ollama_model)
+        except httpx.HTTPError as e:
+            log.warning("ollama warmup failed: %s", e)
 
     def health(self) -> dict:
         s = self.settings

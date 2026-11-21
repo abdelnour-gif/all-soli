@@ -89,7 +89,7 @@ def load_settings() -> Settings:
         openai_model=os.environ.get("OPENAI_MODEL", "darja"),
         anthropic_model=os.environ.get("ANTHROPIC_MODEL", "claude-opus-5-5"),
         anthropic_effort=os.environ.get("ANTHROPIC_EFFORT", "low"),
-        llm_timeout=float(os.environ.get("LLM_TIMEOUT", "60")),
+        llm_timeout=float(os.environ.get("LLM_TIMEOUT", "45")),
         history_turns=int(os.environ.get("HISTORY_TURNS", "10")),
         admin_password=admin_password,
         secret_key=secret_key,

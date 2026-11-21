@@ -60,3 +60,10 @@ def test_get_provider(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     config.reset_settings()
     assert isinstance(get_provider(get_settings()), OllamaProvider)
+
+
+def test_ollama_keeps_model_loaded(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(httpx, "post", lambda url, json=None, **k: seen.update(json) or Resp(200, {"message": {"content": "x"}}))
+    OllamaProvider(get_settings()).generate("S", [{"role": "user", "content": "x"}])
+    assert seen["keep_alive"] == "60m"

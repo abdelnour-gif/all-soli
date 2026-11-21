@@ -384,15 +384,20 @@ function viewTest(){
     <div class="row" style="margin-top:8px">${["السلام عليكم","واش عندكم؟","شحال التوصيل؟","وين راكم؟","حاب نطلب","نحب نهدر مع المسؤول"].map(t=>`<button class="btn secondary small" data-quick="${esc(t)}">${esc(t)}</button>`).join("")}</div>
     <p class="muted">رسائل التجربة تبان في "المحادثات" (🧪)، والطلبيات اللي تأكدهم هنا تتسجل بصح.</p></div>`;
   const send = async text => { if(!text) return; addBubble("user", text); $("#ttext").value="";
+    const t0 = Date.now(); const typing = addBubble("assistant", "يكتب... ⏳"); typing.style.opacity = ".6";
+    const tick = setInterval(() => { typing.firstChild.textContent = `يكتب... ⏳ ${Math.round((Date.now()-t0)/1000)} ث`; }, 1000);
     try{ const r = await api(`/api/shops/${S.shop}/test-chat`,{method:"POST",body:{text, session:S.testSession}});
-      addBubble("assistant", r.reply || "(البوت ما جاوبش: المحادثة عند بشري ولا البوت مطفي)", r.provider + (r.events.length?" · 🔔 "+r.events.join(","):"")); }catch(e){} };
+      typing.remove();
+      addBubble("assistant", r.reply || "(البوت ما جاوبش: المحادثة عند بشري ولا البوت مطفي)", `${r.provider} · ${((Date.now()-t0)/1000).toFixed(1)} ث` + (r.events.length?" · 🔔 "+r.events.join(","):"")); }
+    catch(e){ typing.remove(); addBubble("assistant", "⚠️ "+e.message); }
+    finally{ clearInterval(tick); } };
   $("#tform").onsubmit = e => { e.preventDefault(); send($("#ttext").value.trim()); };
   v.querySelectorAll("[data-quick]").forEach(b => b.onclick = () => send(b.dataset.quick));
   $("#reset").onclick = async () => { await api(`/api/shops/${S.shop}/test-chat`,{method:"POST",body:{text:"سلام", session:S.testSession, reset:true}}); S.testSession=Math.random().toString(36).slice(2,10); $("#tchat").innerHTML=""; toast("محادثة جديدة"); };
   $("#ttext").focus();
 }
 function addBubble(role, text, meta){ const c=$("#tchat"); const d=document.createElement("div"); d.className="msg "+role; d.textContent=text;
-  if(meta){ const m=document.createElement("div"); m.className="meta"; m.textContent=meta; d.appendChild(m); } c.appendChild(d); c.scrollTop=c.scrollHeight; }
+  if(meta){ const m=document.createElement("div"); m.className="meta"; m.textContent=meta; d.appendChild(m); } c.appendChild(d); c.scrollTop=c.scrollHeight; return d; }
 
 // ---------------- training ----------------
 function viewTrain(){

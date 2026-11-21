@@ -62,7 +62,8 @@ KW = {
                           "catalogue", "المنتجات تاعكم", "الخدمات تاعكم", "واش تديرو", "les prix", "واش من خدمات",
                           "les articles", "photos", "تصاور", "صور"]),
     "smalltalk": norm_list(["واش راك", "كيراك", "كي راك", "لاباس", "labas", "cv", "ça va", "ca va", "rak mlih",
-                            "كيداير", "واش راكي", "كيراكي"]),
+                            "كيداير", "واش راكي", "كيراكي", "واشراك", "واشراكي", "واش راكم",
+                            "واشراكم", "كيفاش راك", "labes", "cv?", "rak labas"]),
 }
 
 INFO_INTENTS = ("sizes", "delivery", "payment", "returns", "hours", "location")
