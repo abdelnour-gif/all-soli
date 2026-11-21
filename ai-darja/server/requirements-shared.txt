@@ -1,0 +1,6 @@
+# للاستضافة المشتركة (cPanel / Namecheap): المحرك المدمج برك، بلا uvicorn ولا Ollama
+fastapi>=0.115
+httpx>=0.27
+pydantic>=2.7
+python-multipart>=0.0.9
+a2wsgi>=1.10

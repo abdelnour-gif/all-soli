@@ -99,6 +99,25 @@ Caddy يجيب شهادة مجانية وحدو. لوحة التحكم: `https:/
 >
 > 🔐 كلمة سر المدير: `docker compose exec bot cat /data/admin_password.txt`
 
+## 🌐 التشغيل على استضافة مشتركة (cPanel / Namecheap)
+
+يخدم **بالمحرك المدمج برك** (النموذج يحتاج VPS). مليح للتجربة مع أول محلات.
+
+1. **cPanel ← Subdomains:** أنشئ `bot.دومينك.com`.
+2. **cPanel ← Setup Python App ← Create Application:**
+   - Python version: أعلى نسخة كاينة (3.10 ولا أحدث)
+   - Application root: `darjabot`
+   - Application URL: `bot.دومينك.com`
+   - Application startup file: `passenger_wsgi.py`
+   - Application Entry point: `application`
+3. **File Manager:** ارفع محتوى مجلد `server` (`darjabot/`، `passenger_wsgi.py`، `requirements-shared.txt`) لـ `/home/USER/darjabot`.
+4. **في صفحة التطبيق:** Configuration files ← زيد `requirements-shared.txt` ← **Run Pip Install**.
+5. **Environment variables:** `ADMIN_PASSWORD`، `PUBLIC_BASE_URL=https://bot.دومينك.com`، `LLM_PROVIDER=rules`
+6. **Restart**، وفعّل SSL من **SSL/TLS Status ← Run AutoSSL**.
+7. افتح `https://bot.دومينك.com/admin/`
+
+> تيليغرام على الاستضافة المشتركة: استعمل زر **"ربط البوت"** (webhook)، ماشي `telegram_polling.py`.
+
 ## 🔌 ربط القنوات
 
 كلشي يتدار من **لوحة التحكم ← القنوات**.
