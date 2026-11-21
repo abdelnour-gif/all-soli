@@ -72,16 +72,19 @@ def _llm_answer(shop: dict, products: list[dict], conv_id: int, text: str) -> tu
     if provider is None:
         return None
     system = system_prompt(shop, products)
-    try:
-        reply = provider.generate(system, _history(conv_id))
-    except ProviderError as e:
-        log.warning("provider failed, using rules: %s", e)
-        return None
-    verdict = check(reply.text, system, text, products)
-    if not verdict.ok:
-        log.info("guard rejected reply (%s): %r", verdict.reason, reply.text[:200])
-        return None
-    return reply.text, reply.provider
+    history = _history(conv_id)
+    # محاولتين: إذا الحارس رفض الرد الأول (سعر غالط...)، النموذج يعاود يكتب
+    for attempt in (1, 2):
+        try:
+            reply = provider.generate(system, history)
+        except ProviderError as e:
+            log.warning("provider failed, using rules: %s", e)
+            return None
+        verdict = check(reply.text, system, text, products)
+        if verdict.ok:
+            return reply.text, reply.provider
+        log.info("guard rejected reply #%d (%s): %r", attempt, verdict.reason, reply.text[:200])
+    return None
 
 
 def _notify(shop: dict, text: str, events: list[str], event: str) -> None:

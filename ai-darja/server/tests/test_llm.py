@@ -148,3 +148,20 @@ def test_assist_routing_uses_rules_for_known_questions(chat):
 def test_first_routing(chat, model_first):
     engine.set_provider_override(FakeProvider("إيه خويا، السروال جينز بـ 2800 دج 👌"))
     assert chat("boutique-leila", "بشحال السروال؟").provider == "fake"
+
+
+class SequenceProvider(FakeProvider):
+    def __init__(self, replies):
+        super().__init__()
+        self.replies = list(replies)
+
+    def generate(self, system, messages):
+        self.calls.append((system, messages))
+        return LLMReply(self.replies.pop(0), "fake")
+
+
+def test_model_gets_second_chance(chat, model_first):
+    fake = SequenceProvider(["السروال بـ 1500 دج", "السروال جينز سومتو 2800 دج 👌"])
+    engine.set_provider_override(fake)
+    r = chat("boutique-leila", "بشحال السروال؟")
+    assert r.provider == "fake" and "2800" in r.text and len(fake.calls) == 2
