@@ -185,13 +185,26 @@ tokenizer.save_pretrained("darja_lora")
 model.save_pretrained_gguf("darja_gguf", tokenizer, quantization_method="q4_k_m")
 !ls -lh darja_gguf
 """)
+md("""
+### تحميل الملف
+الملف كبير (حوالي 2 جيغا)، لهذا ننسخوه لـ **Google Drive** باسم `darja.gguf` (أضمن من التحميل المباشر).
+من بعد حمّلو من drive.google.com، وحطو في مجلد `ai-darja` جنب `Modelfile`.
+""")
 code("""
-# تحميل الملف لحاسوبك (أو انسخو لـ Google Drive إذا كان كبير)
-import glob, os
-from google.colab import files
-gguf = sorted(glob.glob("**/*.gguf", recursive=True), key=os.path.getsize)
-print(gguf)
-files.download(gguf[-1])
+import glob, os, shutil
+from google.colab import drive
+
+# Unsloth يحفظ الملف في مجلد ينتهي بـ _gguf (مثلاً darja_gguf_gguf)
+gguf = [f for f in glob.glob("/content/**/*.gguf", recursive=True) if "Q4_K_M" in f or "q4_k_m" in f]
+gguf = gguf or glob.glob("/content/**/*.gguf", recursive=True)
+assert gguf, "ما لقيتش ملف gguf: شوف إذا الخلية اللي قبل كملت بلا أخطاء"
+src = max(gguf, key=os.path.getsize)
+print("الملف:", src, round(os.path.getsize(src) / 1e9, 2), "GB")
+
+drive.mount("/content/drive")
+shutil.copy(src, "/content/drive/MyDrive/darja.gguf")
+shutil.make_archive("/content/drive/MyDrive/darja_lora", "zip", "darja_lora")
+print("✅ تنسخ لـ Google Drive: darja.gguf و darja_lora.zip")
 """)
 
 md("""
