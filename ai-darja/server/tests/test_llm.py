@@ -1,6 +1,8 @@
 """النموذج + الحارس + تطابق صيغة التدريب."""
 import importlib.util
 import json
+
+import pytest
 from pathlib import Path
 
 from darjabot import db, engine
@@ -22,7 +24,14 @@ class FakeProvider:
         return LLMReply(self.reply, "fake")
 
 
-def test_llm_answer_used(chat):
+@pytest.fixture
+def model_first(monkeypatch):
+    from darjabot import config
+    monkeypatch.setenv("LLM_ROUTING", "first")
+    config.reset_settings()
+
+
+def test_llm_answer_used(chat, model_first):
     fake = FakeProvider("إيه خويا، السروال جينز بـ 2800 دج وكاين من 36 حتى 46 👌")
     engine.set_provider_override(fake)
     r = chat("boutique-leila", "السروال واش من مقاس فيه؟")
@@ -31,13 +40,13 @@ def test_llm_answer_used(chat):
     assert "بوتيك ليلى" in system and messages[-1] == {"role": "user", "content": "السروال واش من مقاس فيه؟"}
 
 
-def test_invented_price_falls_back_to_rules(chat):
+def test_invented_price_falls_back_to_rules(chat, model_first):
     engine.set_provider_override(FakeProvider("السروال بـ 1500 دج برك!"))
     r = chat("boutique-leila", "بشحال السروال؟")
     assert r.provider == "rules" and "2800 دج" in r.text
 
 
-def test_provider_error_falls_back(chat):
+def test_provider_error_falls_back(chat, model_first):
     engine.set_provider_override(FakeProvider(error=True))
     r = chat("boutique-leila", "وين راكم؟")
     assert r.provider == "rules" and "وهران" in r.text
@@ -50,7 +59,7 @@ def test_orders_never_go_to_llm(chat):
     assert r.provider == "orders" and not fake.calls
 
 
-def test_history_sent_to_llm(chat):
+def test_history_sent_to_llm(chat, model_first):
     fake = FakeProvider("مرحبا بيك!")
     engine.set_provider_override(fake)
     chat("boutique-leila", "سلام")
@@ -117,3 +126,25 @@ def test_export_training(chat):
     assert roles == ["system", "user", "assistant"]
     assert exs[0]["messages"][-1]["content"] == "السروال جينز بـ 2800 دج خويا 👌"
     json.dumps(exs[0], ensure_ascii=False)
+
+
+def test_guard_rejects_out_of_stock_as_available():
+    shop = {"name": "X", "info": {}}
+    products = [{"id": 1, "name": "روب صيفية", "price": 3200, "aliases": "", "in_stock": False, "sizes": ""}]
+    sp = system_prompt(shop, products)
+    assert not check("روب صيفية متوفرة بـ 3200 دج، تحب تطلب؟", sp, products=products).ok
+    assert check("للأسف روب صيفية ماكانش حالياً.", sp, products=products).ok
+
+
+def test_assist_routing_uses_rules_for_known_questions(chat):
+    fake = FakeProvider("رد من النموذج")
+    engine.set_provider_override(fake)
+    r = chat("boutique-leila", "بشحال السروال؟")
+    assert r.provider == "rules" and not fake.calls          # سؤال معروف: المحرك المدمج (مضمون)
+    r = chat("boutique-leila", "واش تنصحني نلبس للعرس تاع خويا؟", user="u2")
+    assert r.provider == "fake" and fake.calls               # سؤال ما يفهموش المحرك: النموذج
+
+
+def test_first_routing(chat, model_first):
+    engine.set_provider_override(FakeProvider("إيه خويا، السروال جينز بـ 2800 دج 👌"))
+    assert chat("boutique-leila", "بشحال السروال؟").provider == "fake"

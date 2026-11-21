@@ -94,8 +94,14 @@ def _notify(shop: dict, text: str, events: list[str], event: str) -> None:
 
 def answer_question(shop: dict, products: list[dict], conv: dict, text: str, rr: rules.RuleResult,
                     events: list[str]) -> tuple[str, str]:
-    """يجاوب على سؤال عادي: النموذج أولاً، وإلا الرد المدمج."""
-    llm = _llm_answer(shop, products, conv["id"], text)
+    """يجاوب على سؤال عادي.
+
+    LLM_ROUTING=assist (الافتراضي، أدق): الأسئلة اللي المحرك المدمج يعرفها (سعر، توصيل...) يجاوب عليها
+    هو (صحيح 100%)، والنموذج يتدخل غير في الأسئلة اللي ما فهمهاش.
+    LLM_ROUTING=first: النموذج يجاوب على كلشي، والمحرك المدمج احتياط.
+    """
+    use_llm = rr.unknown or get_settings().llm_routing == "first"
+    llm = _llm_answer(shop, products, conv["id"], text) if use_llm else None
     if llm:
         return llm
     if rr.unknown:

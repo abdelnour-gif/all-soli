@@ -42,6 +42,7 @@ class Settings:
     anthropic_effort: str
     llm_timeout: float
     history_turns: int
+    llm_routing: str             # assist | first
     # الأمان
     admin_password: str
     secret_key: str
@@ -91,6 +92,7 @@ def load_settings() -> Settings:
         anthropic_effort=os.environ.get("ANTHROPIC_EFFORT", "low"),
         llm_timeout=float(os.environ.get("LLM_TIMEOUT", "45")),
         history_turns=int(os.environ.get("HISTORY_TURNS", "10")),
+        llm_routing=os.environ.get("LLM_ROUTING", "assist").strip().lower(),
         admin_password=admin_password,
         secret_key=secret_key,
         public_rate_limit=int(os.environ.get("PUBLIC_RATE_LIMIT", "20")),

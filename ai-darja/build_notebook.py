@@ -94,7 +94,7 @@ for ex in test_ds.select(range(3)):
 """)
 
 md("""
-## 6) التدريب 🚀 (تقريباً 20 إلى 40 دقيقة على T4)
+## 6) التدريب 🚀 (تقريباً 30 إلى 45 دقيقة على T4)
 النموذج يتعلم من ردود المساعد فقط (ماشي من أسئلة الزبون).
 """)
 code("""
@@ -110,7 +110,7 @@ cfg = dict(
     max_seq_length=MAX_LEN, max_length=MAX_LEN,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
-    num_train_epochs=1,
+    num_train_epochs=2,   # جوج دورات على البيانات: دقة أحسن (التدريب ياخذ ضعف الوقت)
     learning_rate=2e-4,
     warmup_steps=10,
     logging_steps=10,

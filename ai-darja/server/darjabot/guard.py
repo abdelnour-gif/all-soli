@@ -51,6 +51,15 @@ def price_numbers(system_prompt: str) -> set[int]:
     return {v for v, is_price in numbers(system_prompt) if is_price and v >= 50}
 
 
+_AVAILABLE = ("متوفر", "متوفرة", "كاين", "كاينة", "مازال", "تحب تطلب", "نحجزهولك", "نبعثهولك", "disponible")
+_NEGATION = ("ماكانش", "ما كانش", "مكانش", "غير متوفر", "ماهوش متوفر", "ماهيش", "ما راهوش", "للأسف", "نفد",
+             "ما بقاش", "مابقاش", "rupture", "pas disponible", "ماكاش", "ما كاش")
+
+
+def _claims_available(text: str) -> bool:
+    return any(w in text for w in _AVAILABLE) and not any(w in text for w in _NEGATION)
+
+
 def _is_plausible_total(v: int, prices: set[int]) -> bool:
     """يقبل سعر × كمية صغيرة، ولا مجموع سعرين (مثلاً منتج + توصيل)."""
     for a in prices:
@@ -93,7 +102,14 @@ def check(reply: str, system_prompt: str, user_text: str = "", products: list[di
     # السعر المكتوب جنب اسم المنتج لازم يكون سعرو هو
     if products:
         from .extract import match_products
-        for clause in _CLAUSE.split(to_latin_digits(reply).replace(" ", " ")):
+        text = to_latin_digits(reply).replace("\u00a0", " ")
+        # المنتج الغير متوفر ما نقولوش عليه "كاين"
+        for sentence in re.split(r"[.!؟?\n]+", text):
+            matched = match_products(sentence, products)
+            if len(matched) == 1 and not matched[0].product.get("in_stock", True) and _claims_available(sentence):
+                return GuardResult(False, f"out_of_stock_claimed:{matched[0].product['name']}")
+        # السعر المكتوب جنب اسم المنتج لازم يكون سعرو هو
+        for clause in _CLAUSE.split(text):
             clause_prices = [v for v, is_price in numbers(clause) if is_price]
             if not clause_prices:
                 continue
