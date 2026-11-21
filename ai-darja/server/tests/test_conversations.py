@@ -192,3 +192,16 @@ def test_voice_during_order_is_not_a_name(chat):
     assert "ما نقدرش نسمع" in r.text and "الاسم" in r.text
     state = db.list_conversations(None)[0]["order_state"]
     assert state["active"] and not state.get("name")
+
+
+def test_colors_from_product_details(chat):
+    r = chat("boutique-leila", "الجاكيطة واش من ألوان كاين؟")
+    assert "أسود وبني" in r.text
+    chat("boutique-leila", "بشحال التيشورت؟", user="c2")
+    r = chat("boutique-leila", "واش من لون كاين فيه؟", user="c2")          # يتفكر المنتج
+    assert "رمادي" in r.text
+
+
+def test_colors_unknown_when_not_filled(chat, notifications):
+    r = chat("clinique-chifa", "الحشوة واش من لون؟")
+    assert "ما عنديش المعلومة على الألوان" in r.text and notifications

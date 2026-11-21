@@ -24,6 +24,10 @@ KW = {
                         "disponible", "dispo", "available", "راهو كاين", "تبيعو"]),
     "sizes": norm_list(["مقاس", "مقاسات", "طاي", "تاي", "تايات", "طايات", "taille", "pointure", "حجم", "أحجام",
                         "احجام", "size", "نمرة", "نمره", "القد", "تايّات"]),
+    "colors": norm_list(["لون", "ألوان", "الوان", "لونات", "اللون", "الالوان", "couleur", "couleurs", "color",
+                         "colors", "كحل", "كحلة", "أكحل", "اكحل", "أبيض", "ابيض", "بيضاء", "أحمر", "احمر", "حمرة",
+                         "أزرق", "ازرق", "زرقة", "أخضر", "اخضر", "رمادي", "بني", "بيج", "وردي", "noir", "blanc",
+                         "rouge", "bleu", "vert", "gris", "beige", "rose"]),
     "delivery": norm_list(["توصيل", "توصلو", "توصلوا", "التوصيل", "ليفريزون", "ليفريزو", "livraison", "تبعثو",
                            "تبعثوا", "يوصل", "توصل", "شحن", "yalidine", "ياليدين", "zr express", "للدار",
                            "تبعثولي", "توصيلة", "livreur", "ليفرور", "delivery"]),
@@ -66,7 +70,7 @@ KW = {
                             "واشراكم", "كيفاش راك", "labes", "cv?", "rak labas"]),
 }
 
-INFO_INTENTS = ("sizes", "delivery", "payment", "returns", "hours", "location")
+INFO_INTENTS = ("colors", "sizes", "delivery", "payment", "returns", "hours", "location")
 
 
 @dataclass
@@ -246,7 +250,7 @@ def greeting_prefix(text: str) -> str:
     return ""
 
 
-CONTEXT_INTENTS = {"order", "price", "stock", "sizes"}
+CONTEXT_INTENTS = {"order", "price", "stock", "sizes", "colors"}
 
 
 def answer(shop: dict, products: list[dict], text: str, rng: random.Random | None = None,
@@ -255,7 +259,7 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
     r = rng or random.Random()
     info = shop.get("info") or {}
     intents, matches = detect(text, products)
-    if not matches and context_product and intents & CONTEXT_INTENTS and not intents & set(INFO_INTENTS) - {"sizes"} \
+    if not matches and context_product and intents & CONTEXT_INTENTS and not intents & set(INFO_INTENTS) - {"sizes", "colors"} \
             and "catalog" not in intents:
         matches = [context_product]
     product = matches[0] if len(matches) == 1 else None
@@ -306,7 +310,15 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
     if matches:
         targets = matches[:3]
         for p in targets:
-            if "sizes" in intents:
+            if "colors" in intents:
+                if p.get("description"):
+                    parts.insert(0, f"{p['name']}: {p['description']}.")
+                else:
+                    res.unknown = True
+                    phone = fmt_phone(info.get("phone", ""))
+                    parts.insert(0, f"ما عنديش المعلومة على الألوان تاع {p['name']}"
+                                    + (f"، عيط على {phone} ويقولولك." if phone else "، نسقسي ونرجعلك."))
+            elif "sizes" in intents:
                 parts.insert(0, _sizes_line(p))
             elif "price" in intents or not ({"stock"} & intents):
                 parts.insert(0, _price_line(p))
@@ -329,6 +341,10 @@ def answer(shop: dict, products: list[dict], text: str, rng: random.Random | Non
             parts.append(line + "\n" + catalog_line(products, 6))
         else:
             parts.append(catalog_line(products))
+    elif "colors" in intents and not parts:
+        parts.append("قولي على واش من منتج تسقسي باش نعطيك الألوان." if any(p.get("description") for p in products)
+                     else unknown_reply(info, r))
+        res.unknown = not any(p.get("description") for p in products)
     elif "sizes" in intents:
         with_sizes = [p for p in products if p.get("sizes")]
         parts.append("قولي على واش من منتج تسقسي باش نعطيك المقاسات." if with_sizes else "ما عندناش مقاسات، حجم واحد.")

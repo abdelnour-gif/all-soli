@@ -305,11 +305,11 @@ async function viewShop(){
     <div class="row" style="margin-top:14px"><button class="btn">💾 حفظ المعلومات</button>${S.me.role==="admin"?`<button type="button" class="btn danger small" id="del-shop">حذف المحل</button>`:""}<a href="#" id="see-prompt" class="muted">شوف واش يعرف البوت ←</a></div>
   </form></div>
   <div class="card"><h2>🛍️ السلع / الخدمات (${shop.products.length})</h2>
-    <div class="table-wrap"><table><thead><tr><th>الاسم</th><th>السعر (دج)</th><th>المقاسات/الأحجام</th><th>أسماء أخرى يستعملها الزبائن</th><th>متوفر</th><th></th></tr></thead><tbody id="prods">
+    <div class="table-wrap"><table><thead><tr><th>الاسم</th><th>السعر (دج)</th><th>المقاسات/الأحجام</th><th>الألوان والتفاصيل</th><th>أسماء أخرى يستعملها الزبائن</th><th>متوفر</th><th></th></tr></thead><tbody id="prods">
     ${shop.products.map(p=>prodRow(p)).join("")}
-    <tr><td><input id="np-name" placeholder="سروال جينز"></td><td><input id="np-price" type="number" min="0" placeholder="2800"></td><td><input id="np-sizes" placeholder="من 36 حتى 46"></td><td><input id="np-aliases" placeholder="جينز، jean"></td><td><input type="checkbox" id="np-stock" checked style="width:auto"></td><td><button class="btn small" id="np-add">+ زيد</button></td></tr>
+    <tr><td><input id="np-name" placeholder="سروال جينز"></td><td><input id="np-price" type="number" min="0" placeholder="2800"></td><td><input id="np-sizes" placeholder="من 36 حتى 46"></td><td><input id="np-desc" placeholder="أزرق، أسود، رمادي"></td><td><input id="np-aliases" placeholder="جينز، jean"></td><td><input type="checkbox" id="np-stock" checked style="width:auto"></td><td><button class="btn small" id="np-add">+ زيد</button></td></tr>
     </tbody></table></div>
-    <p class="muted">"أسماء أخرى" تعاون البوت يفهم الزبون كي يكتب بالدارجة ولا بالفرنسية (مثلاً: جاكيطة، veste، blouson).</p>
+    <p class="muted">"الألوان والتفاصيل": اكتب كل واش يسقسي عليه الزبون (الألوان، الخامة، الماركة...)، والبوت يجاوب منها. "أسماء أخرى" تعاون البوت يفهم الزبون كي يكتب بالدارجة ولا بالفرنسية (مثلاً: جاكيطة، veste، blouson).</p>
   </div>
   <div class="card hidden" id="prompt-card"><h2>هادي المعلومات اللي يشوفها البوت</h2><pre class="code" id="prompt-box"></pre></div>`;
   $("#add-faq").onclick = () => $("#faqs").insertAdjacentHTML("beforeend", faqRow({q:"",a:""}));
@@ -325,14 +325,14 @@ async function viewShop(){
   $("#del-shop")?.addEventListener("click", async()=>{ if(!confirm("متأكد؟ كل المحادثات والطلبيات تاع هاد المحل يتمحاو.")) return; await api(`/api/shops/${S.shop}`,{method:"DELETE"}); await loadShops(); S.shop=""; render(); });
   $("#see-prompt").onclick = async e => { e.preventDefault(); $("#prompt-box").textContent = await api(`/api/shops/${S.shop}/prompt`); $("#prompt-card").classList.remove("hidden"); $("#prompt-card").scrollIntoView({behavior:"smooth"}); };
   $("#np-add").onclick = async () => { const name=$("#np-name").value.trim(); if(!name) return toast("اكتب اسم المنتج");
-    await api(`/api/shops/${S.shop}/products`,{method:"POST",body:{name, price:+$("#np-price").value||0, sizes:$("#np-sizes").value.trim(), aliases:$("#np-aliases").value.trim(), in_stock:$("#np-stock").checked}}); toast("تزاد ✓"); viewShop(); };
+    await api(`/api/shops/${S.shop}/products`,{method:"POST",body:{name, price:+$("#np-price").value||0, sizes:$("#np-sizes").value.trim(), description:$("#np-desc").value.trim(), aliases:$("#np-aliases").value.trim(), in_stock:$("#np-stock").checked}}); toast("تزاد ✓"); viewShop(); };
   $("#prods").addEventListener("change", async e => { const tr=e.target.closest("tr[data-pid]"); if(!tr) return;
-    const body = {name:tr.querySelector("[data-f=name]").value.trim(), price:+tr.querySelector("[data-f=price]").value||0, sizes:tr.querySelector("[data-f=sizes]").value.trim(), aliases:tr.querySelector("[data-f=aliases]").value.trim(), in_stock:tr.querySelector("[data-f=in_stock]").checked};
+    const body = {name:tr.querySelector("[data-f=name]").value.trim(), price:+tr.querySelector("[data-f=price]").value||0, sizes:tr.querySelector("[data-f=sizes]").value.trim(), description:tr.querySelector("[data-f=description]").value.trim(), aliases:tr.querySelector("[data-f=aliases]").value.trim(), in_stock:tr.querySelector("[data-f=in_stock]").checked};
     await api(`/api/products/${tr.dataset.pid}`,{method:"PUT",body}); toast("تحفظ ✓"); });
   $("#prods").addEventListener("click", async e => { if(e.target.dataset.del===undefined) return; const tr=e.target.closest("tr"); if(!confirm("نمحو هاد المنتج؟")) return; await api(`/api/products/${tr.dataset.pid}`,{method:"DELETE"}); tr.remove(); });
 }
 const faqRow = f => `<div class="faq-row"><input data-q placeholder="السؤال: كاين تخفيضات؟" value="${esc(f.q)}"><input data-a placeholder="الجواب: إيه كل خميس..." value="${esc(f.a)}"><button type="button" class="btn secondary small" data-delfaq>✕</button></div>`;
-const prodRow = p => `<tr data-pid="${p.id}"><td><input data-f="name" value="${esc(p.name)}"></td><td><input data-f="price" type="number" min="0" value="${p.price}"></td><td><input data-f="sizes" value="${esc(p.sizes)}"></td><td><input data-f="aliases" value="${esc(p.aliases)}"></td><td><input data-f="in_stock" type="checkbox" ${p.in_stock?"checked":""} style="width:auto"></td><td><button class="btn secondary small" data-del>🗑</button></td></tr>`;
+const prodRow = p => `<tr data-pid="${p.id}"><td><input data-f="name" value="${esc(p.name)}"></td><td><input data-f="price" type="number" min="0" value="${p.price}"></td><td><input data-f="sizes" value="${esc(p.sizes)}"></td><td><input data-f="description" value="${esc(p.description)}" placeholder="الألوان، الخامة..."></td><td><input data-f="aliases" value="${esc(p.aliases)}"></td><td><input data-f="in_stock" type="checkbox" ${p.in_stock?"checked":""} style="width:auto"></td><td><button class="btn secondary small" data-del>🗑</button></td></tr>`;
 const slugify = s => s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g,"").trim().replace(/[\s_]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
 
 // ---------------- channels ----------------

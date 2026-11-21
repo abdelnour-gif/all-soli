@@ -16,10 +16,13 @@ DEMO_SHOPS = [
             "faqs": [{"q": "كاين تخفيضات؟", "a": "إيه، كل خميس كاين تخفيض 10% على السراول 🎉"}],
         },
         "products": [
-            {"name": "سروال جينز", "price": 2800, "sizes": "من 36 حتى 46", "in_stock": True, "aliases": "جينز, jean, سروال"},
-            {"name": "جاكيطة جلد", "price": 6500, "sizes": "M, L, XL", "in_stock": True, "aliases": "جاكيطة, veste, blouson"},
+            {"name": "سروال جينز", "price": 2800, "sizes": "من 36 حتى 46", "in_stock": True, "aliases": "جينز, jean, سروال",
+             "description": "الألوان: أزرق فاتح، أزرق غامق، أسود. قصة slim"},
+            {"name": "جاكيطة جلد", "price": 6500, "sizes": "M, L, XL", "in_stock": True, "aliases": "جاكيطة, veste, blouson",
+             "description": "الألوان: أسود وبني. جلد طبيعي"},
             {"name": "روب صيفية", "price": 3200, "sizes": "S, M, L", "in_stock": False, "aliases": "روبة, robe"},
-            {"name": "تيشورت قطن", "price": 1200, "sizes": "S حتى XXL", "in_stock": True, "aliases": "تيشورت, tshirt, t-shirt"},
+            {"name": "تيشورت قطن", "price": 1200, "sizes": "S حتى XXL", "in_stock": True, "aliases": "تيشورت, tshirt, t-shirt",
+             "description": "الألوان: أبيض، أسود، رمادي، كحلة. قطن 100%"},
         ],
     },
     {

@@ -53,7 +53,7 @@ def shop_card(shop: dict, products: list[dict]) -> str:
     for p in products:
         extra = f" | {p['sizes']}" if p.get("sizes") else ""
         stock = "متوفر" if p.get("in_stock", True) else "غير متوفر حالياً"
-        desc = f" | {p['description']}" if p.get("description") else ""
+        desc = f" | تفاصيل: {p['description']}" if p.get("description") else ""
         lines.append(f"- {p['name']}: {money(p['price'])}{extra} | {stock}{desc}")
     if info.get("extra"):
         lines.append(f"معلومات إضافية: {info['extra']}")
